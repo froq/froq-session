@@ -24,7 +24,8 @@ declare(strict_types=1);
 namespace Froq\Util;
 
 use Froq\Encryption\Salt;
-use Froq\Util\Traits\{SingleTrait as Single, GetterTrait as Getter};
+use Froq\Util\Traits\SingleTrait as Single;
+use Froq\Util\Traits\GetterTrait as Getter;
 
 /**
  * @package    Froq
