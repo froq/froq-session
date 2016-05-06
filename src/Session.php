@@ -1,0 +1,551 @@
+<?php
+/**
+ * Copyright (c) 2016 Kerem Güneş
+ *     <k-gun@mail.com>
+ *
+ * GNU General Public License v3.0
+ *     <http://www.gnu.org/licenses/gpl-3.0.txt>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+declare(strict_types=1);
+
+namespace Froq\Util;
+
+use Froq\Encryption\Salt;
+use Froq\Util\Traits\{SingleTrait as Single, GetterTrait as Getter};
+
+/**
+ * @package    Froq
+ * @subpackage Froq\Util
+ * @object     Froq\Util\Session
+ * @author     Kerem Güneş <k-gun@mail.com>
+ */
+final class Session
+{
+    /**
+     * Single.
+     * @var Froq\Util\Traits\SingleTrait
+     */
+    use Single;
+
+    /**
+     * Getter.
+     * @var Froq\Util\Traits\GetterTrait
+     */
+    use Getter;
+
+    /**
+     * Session ID.
+     * @var string
+     */
+    private $id;
+
+    /**
+     * Session name.
+     * @var string
+     */
+    private $name;
+
+    /**
+     * Session started state.
+     * @var bool
+     */
+    private $isStarted = false;
+
+    /**
+     * Session destroyed state.
+     * @var bool
+     */
+    private $isDestroyed = false;
+
+    /**
+     * Session options.
+     * @var array
+     */
+    private $options = [
+        'name'             => 'SID',
+        'length'           => 32,
+        'length_default'   => 32,
+        'length_available' => [32, 40, 64, 128], // SID lengths
+    ];
+
+    /**
+     * Constructor.
+     * @param array $options
+     */
+    final private function __construct(array $options = [])
+    {
+        // merge options
+        $this->options = array_merge($this->options, $options);
+
+        // store name
+        $this->name = $this->options['name'];
+
+        // check length
+        if (!in_array($this->options['length'], $this->options['length_available'])) {
+            $this->options['length'] = $this->options['length_default'];
+        }
+
+        // session is active?
+        if (!$this->isStarted || session_status() != PHP_SESSION_ACTIVE) {
+            // use hex hash
+            // ini_set('session.session.hash_function', 1);
+            // ini_set('session.hash_bits_per_character', 4);
+
+            // set defaults
+            session_set_cookie_params(
+                (int)    $this->options['lifetime'],
+                (string) $this->options['path'],
+                (string) $this->options['domain'],
+                (bool)   $this->options['secure'],
+                (bool)   $this->options['httponly']
+            );
+
+            // set session name
+            session_name($this->name);
+
+            // reset session data and start session
+            $this->reset();
+            $this->start();
+        }
+    }
+
+    /**
+     * Destructor.
+     * @return void
+     */
+    final public function __destruct()
+    {
+        session_register_shutdown();
+    }
+
+    /**
+     * Set a session data.
+     * @param  string $key
+     * @param  any    $value
+     * @return void
+     * @throws Froq\Session\SessionException
+     */
+    final public function __set(string $key, $value)
+    {
+        if (!isset($_SESSION[$this->name])) {
+            // stop writing first
+            session_abort();
+
+            throw new SessionException(sprintf(
+                "Session not started yet, call first '%s::start()' or use isset() first!",
+                    __class__
+            ));
+        }
+
+        $_SESSION[$this->name][$key] = $value;
+    }
+
+    /**
+     * Get a session data.
+     * @param  string $key
+     * @return any
+     * @throws Froq\Session\SessionException
+     */
+    final public function __get(string $key)
+    {
+        if (!isset($_SESSION[$this->name])) {
+            throw new SessionException(sprintf(
+                "Session not started yet, call first '%s::start()' or use isset() first!",
+                    __class__
+            ));
+        }
+
+        return array_key_exists($key, $_SESSION[$this->name])
+            ? $_SESSION[$this->name][$key] : null;
+    }
+
+    /**
+     * Check a session data.
+     * @param  string $key
+     * @return bool
+     * @throws Froq\Session\SessionException
+     */
+    final public function __isset(string $key)
+    {
+        if (!isset($_SESSION[$this->name])) {
+            throw new SessionException(sprintf(
+                "Session not started yet, call first '%s::start()' or use isset() first!",
+                    __class__
+            ));
+        }
+
+        return array_key_exists($key, $_SESSION[$this->name]);
+    }
+
+    /**
+     * Remove a session data.
+     * @param  string $key
+     * @return void
+     * @throws Froq\Session\SessionException
+     */
+    final public function __unset(string $key)
+    {
+        if (!isset($_SESSION[$this->name])) {
+            throw new SessionException(sprintf(
+                "Session not started yet, call first '%s::start()' or use isset() first!",
+                    __class__
+            ));
+        }
+
+        unset($_SESSION[$this->name][$key]);
+    }
+
+    /**
+     * Set a session data.
+     * @param  string $key
+     * @param  any    $value
+     * @return self
+     */
+    final public function set(string $key, $value): self
+    {
+        $this->__set($key, $value);
+
+        return $this;
+    }
+
+    /**
+     * Set multi session data.
+     * @param  array $data
+     * @return self
+     */
+    final public function setAll(array $data): self
+    {
+        foreach ($data as $key => $value) {
+            $this->__set($key, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get a session data or default value.
+     * @param  string $key
+     * @param  any    $valueDefault
+     * @return any
+     */
+    final public function get(string $key, $valueDefault = null)
+    {
+        return (null !== ($value = $this->__get($key)))
+            ? $value : $valueDefault;
+    }
+
+    /**
+     * Get multi session data.
+     * @param  array $keys
+     * @return array
+     */
+    final public function getAll(array $keys): array
+    {
+        $data = [];
+        foreach ($keys as $key) {
+            $data[$keys] = $this->__get($key);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Remove a session data.
+     * @param  string $key
+     * @return self
+     */
+    final public function remove(string $key): self
+    {
+        $this->__unset($key);
+
+        return $this;
+    }
+
+    /**
+     * Remove multi session data.
+     * @param  array $keys
+     * @return self
+     */
+    final public function removeAll(array $keys): self
+    {
+        foreach ($keys as $key) {
+            $this->__unset($key);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get session id.
+     * @return string
+     */
+    final public function getId(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * Get session name.
+     * @return string
+     */
+    final public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Get options.
+     * @return array
+     */
+    final public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    /**
+     * Check session is started.
+     * @return bool
+     */
+    final public function isStarted(): bool
+    {
+        return ($this->isStarted == true);
+    }
+
+    /**
+     * Check session is destroyed.
+     * @return bool
+     */
+    final public function isDestroyed(): bool
+    {
+        return ($this->isDestroyed == true);
+    }
+
+    /**
+     * Check SID is valid.
+     * @param  string $id
+     * @return bool
+     */
+    final public function isValidId(string $id): bool
+    {
+        // see self.generateId()
+        return (bool) preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id);
+    }
+
+    /**
+     * Check SID file is valid.
+     * @param  string $id
+     * @return bool
+     */
+    final public function isValidFile(string $id): bool
+    {
+        return is_file(sprintf('%s/sess_%s', ini_get('session.save_path'), $id));
+    }
+
+    /**
+     * Start session and set session id.
+     * @return bool
+     * @throws Froq\Session\SessionException
+     */
+    final public function start(): bool
+    {
+        // check started?
+        if ($this->isStarted) {
+            return true;
+        }
+
+        // check headers
+        if (headers_sent($file, $line)) {
+            throw new SessionException(sprintf(
+                "Call '%s()' before outputs have been sent. [output location: '%s:%s']",
+                    __method__, $file, $line
+            ));
+        }
+
+        // app
+        $app = app();
+
+        // set/check id
+        $id = session_id();
+        if ($this->isValidId($id)) {
+            $this->id = $id;
+        } else {
+            $id = $app->request->cookies->get($this->name, '');
+            // hard and hard..
+            if ($this->isValidId($id) && $this->isValidFile($id)) {
+                $this->id = $id;
+            } else {
+                // generate new one
+                $this->id = $this->generateId();
+            }
+        }
+
+        /**
+         * Note: When using session cookies, specifying an id for session_id() will always send a new
+         * cookie when session_start() is called, regardless if the current session id is identical to
+         * the one being set. */
+        // set session id
+        session_id($this->id);
+
+        // start session
+        $this->isStarted = session_start();
+        if (!$this->isStarted) {
+            // stop writing first
+            session_write_close();
+
+            throw new SessionException(sprintf(
+                "Session start is failed in '%s()'", __method__));
+        }
+
+        // init subpart
+        if (!isset($_SESSION[$this->name])) {
+            $_SESSION[$this->name] = [];
+        }
+
+        return $this->isStarted;
+    }
+
+    /**
+     * Destroy session.
+     * @param  bool $deleteCookie
+     * @return bool
+     */
+    final public function destroy(bool $deleteCookie = true): bool
+    {
+        // check destroy before?
+        if (!$this->isDestroyed) {
+            $this->isDestroyed = session_destroy();
+            // reset session data
+            if ($this->isDestroyed) {
+                $this->reset();
+            }
+            // delete cookie?
+            if ($deleteCookie) {
+                $this->deleteCookie();
+            }
+        }
+
+        // remove session id
+        $this->id = null;
+
+        return $this->isDestroyed;
+    }
+
+    /**
+     * Delete session cookie.
+     * @return void
+     */
+    final public function deleteCookie()
+    {
+        if (isset($_COOKIE[$this->name])) {
+            $cookieParams = session_get_cookie_params();
+            setcookie($this->name, '', 0,
+                $cookieParams['path'],
+                $cookieParams['domain'],
+                $cookieParams['secure'],
+                $cookieParams['httponly']
+            );
+        }
+    }
+
+    /**
+     * Generate id.
+     * @return string
+     */
+    final function generateId(): string
+    {
+        // get a random salt
+        $id = Salt::generate(Salt::TYPE_URANDOM, Salt::LENGTH, false);
+
+        // encode by length
+        switch ($this->options['length']) {
+            case  32: $id = hash('md5', $id); break;
+            case  40: $id = hash('sha1', $id); break;
+            case  64: $id = hash('sha256', $id); break;
+            case 128: $id = hash('sha512', $id); break;
+        }
+
+        // return upper'ed
+        return strtoupper($id);
+    }
+
+    /**
+     * Regenerate session id.
+     * @param  bool $deleteOldSession
+     * @return bool
+     * @throws Froq\Session\SessionException
+     */
+    final public function regenerateId(bool $deleteOldSession = true): bool
+    {
+        // check headers sent?
+        if (headers_sent($file, $line)) {
+            throw new SessionException(sprintf(
+                "Call to '%s()' after outputs have been sent. [output location is '%s:%s']",
+                    __method__, $file, $line
+            ));
+        }
+        // regenerate
+        $return = session_regenerate_id($deleteOldSession);
+
+        // store session id
+        $this->id = session_id($this->generateId());
+
+        return $return;
+    }
+
+    /**
+     * Flash messages.
+     * @param  any $message
+     * @return any
+     */
+    final public function flash($message = null)
+    {
+        // get flash message
+        if ($message === null) {
+            $message = $this->get('@flash');
+
+            // remove
+            $this->remove('@flash');
+
+            return $message;
+        }
+
+        // set message
+        $this->set('@flash', $message);
+    }
+
+    /**
+     * Reset session global.
+     * @return void
+     */
+    final private function reset()
+    {
+        $_SESSION[$this->name] = [];
+    }
+
+    /**
+     * Get session sub-array data.
+     * @return array
+     */
+    final public function toArray(): array
+    {
+        $array = [];
+        if (isset($_SESSION[$this->name])) {
+            $array = to_array($_SESSION[$this->name], true);
+        }
+
+        return $array;
+    }
+}
