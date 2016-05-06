@@ -468,7 +468,7 @@ final class Session
     final function generateId(): string
     {
         // get a random salt
-        $id = Salt::generate(Salt::TYPE_URANDOM, Salt::LENGTH, false);
+        $id = Salt::generate(Salt::LENGTH, false);
 
         // encode by length
         switch ($this->options['length']) {
