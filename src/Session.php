@@ -24,8 +24,7 @@ declare(strict_types=1);
 namespace Froq\Session;
 
 use Froq\Encryption\Salt;
-use Froq\Util\Traits\SingleTrait as Single;
-use Froq\Util\Traits\GetterTrait as Getter;
+use Froq\Util\Traits\{GetterTrait, SingleTrait};
 
 /**
  * @package    Froq
@@ -39,13 +38,13 @@ final class Session
      * Single.
      * @var Froq\Util\Traits\SingleTrait
      */
-    use Single;
+    use SingleTrait;
 
     /**
      * Getter.
      * @var Froq\Util\Traits\GetterTrait
      */
-    use Getter;
+    use GetterTrait;
 
     /**
      * Session ID.
