@@ -76,19 +76,27 @@ final class Session
      */
     private $options = [
         'name'             => 'SID',
+        'domain'           => '',
+        'path'             => '/',
+        'secure'           => false,
+        'httponly'         => false,
+        'lifetime'         => 0,
+        // SID lengths
         'length'           => 32,
         'length_default'   => 32,
-        'length_available' => [32, 40, 64, 128], // SID lengths
+        'length_available' => [32, 40, 64, 128],
     ];
 
     /**
      * Constructor.
      * @param array $options
      */
-    final private function __construct(array $options = [])
+    final private function __construct(array $options = null)
     {
         // merge options
-        $this->options = array_merge($this->options, $options);
+        if ($options) {
+            $this->options = array_merge($this->options, $options);
+        }
 
         // store name
         $this->name = $this->options['name'];
