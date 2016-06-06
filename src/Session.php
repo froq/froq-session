@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace Froq\Session;
 
 use Froq\Encryption\Salt;
-use Froq\Util\Traits\{GetterTrait, SingleTrait};
+use Froq\Util\Traits\{SingleTrait, GetterTrait};
 
 /**
  * @package    Froq
