@@ -392,8 +392,8 @@ final class Session
         /**
          * Note: When using session cookies, specifying an id for session_id() will always send a new
          * cookie when session_start() is called, regardless if the current session id is identical to
-         * the one being set. */
-        // set session id
+         * the one being set.
+         */
         session_id($this->id);
 
         // start session
@@ -402,11 +402,10 @@ final class Session
             // stop writing first
             session_write_close();
 
-            throw new SessionException(sprintf(
-                "Session start is failed in '%s()'", __method__));
+            throw new SessionException(sprintf("Session start is failed in '%s()'", __method__));
         }
 
-        // init subpart
+        // init sub-array
         if (!isset($_SESSION[$this->name])) {
             $_SESSION[$this->name] = [];
         }
