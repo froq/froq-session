@@ -374,15 +374,12 @@ final class Session
             ));
         }
 
-        // app
-        $app = app();
-
         // set/check id
         $id = session_id();
         if ($this->isValidId($id)) {
             $this->id = $id;
         } else {
-            $id = $app->request->cookies->get($this->name, '');
+            $id = $_COOKIE[$this->name] ?? '';
             // hard and hard..
             if ($this->isValidId($id) && $this->isValidFile($id)) {
                 $this->id = $id;
