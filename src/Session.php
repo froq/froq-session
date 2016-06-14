@@ -47,31 +47,31 @@ final class Session
     use GetterTrait;
 
     /**
-     * Session ID.
+     * ID.
      * @var string
      */
     private $id;
 
     /**
-     * Session name.
+     * name.
      * @var string
      */
     private $name;
 
     /**
-     * Session started state.
+     * Is started.
      * @var bool
      */
     private $isStarted = false;
 
     /**
-     * Session destroyed state.
+     * Is destroyed.
      * @var bool
      */
     private $isDestroyed = false;
 
     /**
-     * Session options.
+     * Options.
      * @var array
      */
     private $options = [
@@ -81,8 +81,7 @@ final class Session
         'secure'           => false,
         'httponly'         => false,
         'lifetime'         => 0,
-        // SID lengths
-        'length'           => 32,
+        'length'           => 32, // ID length
         'length_default'   => 32,
         'length_available' => [32, 40, 64, 128],
     ];
@@ -98,20 +97,15 @@ final class Session
             $this->options = array_merge($this->options, $options);
         }
 
-        // store name
         $this->name = $this->options['name'];
 
-        // check length
+        // check/set length
         if (!in_array($this->options['length'], $this->options['length_available'])) {
             $this->options['length'] = $this->options['length_default'];
         }
 
         // session is active?
         if (!$this->isStarted || session_status() != PHP_SESSION_ACTIVE) {
-            // use hex hash
-            // ini_set('session.session.hash_function', 1);
-            // ini_set('session.hash_bits_per_character', 4);
-
             // set defaults
             session_set_cookie_params(
                 (int)    $this->options['lifetime'],
@@ -124,7 +118,6 @@ final class Session
             // set session name
             session_name($this->name);
 
-            // reset session data and start session
             $this->reset();
             $this->start();
         }
@@ -140,7 +133,7 @@ final class Session
     }
 
     /**
-     * Set a session data.
+     * Set magic.
      * @param  string $key
      * @param  any    $value
      * @return void
@@ -162,7 +155,7 @@ final class Session
     }
 
     /**
-     * Get a session data.
+     * Get magic.
      * @param  string $key
      * @return any
      * @throws Froq\Session\SessionException
@@ -181,7 +174,7 @@ final class Session
     }
 
     /**
-     * Check a session data.
+     * Isset magic.
      * @param  string $key
      * @return bool
      * @throws Froq\Session\SessionException
@@ -199,7 +192,7 @@ final class Session
     }
 
     /**
-     * Remove a session data.
+     * Unset magic.
      * @param  string $key
      * @return void
      * @throws Froq\Session\SessionException
@@ -217,7 +210,7 @@ final class Session
     }
 
     /**
-     * Set a session data.
+     * Set.
      * @param  string $key
      * @param  any    $value
      * @return self
@@ -230,7 +223,7 @@ final class Session
     }
 
     /**
-     * Set multi session data.
+     * Set all.
      * @param  array $data
      * @return self
      */
@@ -244,7 +237,7 @@ final class Session
     }
 
     /**
-     * Get a session data or default value.
+     * Get.
      * @param  string $key
      * @param  any    $valueDefault
      * @return any
@@ -256,7 +249,7 @@ final class Session
     }
 
     /**
-     * Get multi session data.
+     * Get all.
      * @param  array $keys
      * @return array
      */
@@ -271,7 +264,7 @@ final class Session
     }
 
     /**
-     * Remove a session data.
+     * Remove.
      * @param  string $key
      * @return self
      */
@@ -283,7 +276,7 @@ final class Session
     }
 
     /**
-     * Remove multi session data.
+     * Remove all.
      * @param  array $keys
      * @return self
      */
@@ -297,19 +290,19 @@ final class Session
     }
 
     /**
-     * Get session id.
-     * @return string
+     * Get id.
+     * @return string|null
      */
-    final public function getId(): string
+    final public function getId()
     {
         return $this->id;
     }
 
     /**
-     * Get session name.
-     * @return string
+     * Get name.
+     * @return string|null
      */
-    final public function getName(): string
+    final public function getName()
     {
         return $this->name;
     }
@@ -324,36 +317,36 @@ final class Session
     }
 
     /**
-     * Check session is started.
+     * Is started.
      * @return bool
      */
     final public function isStarted(): bool
     {
-        return ($this->isStarted == true);
+        return $this->isStarted;
     }
 
     /**
-     * Check session is destroyed.
+     * Is destroyed.
      * @return bool
      */
     final public function isDestroyed(): bool
     {
-        return ($this->isDestroyed == true);
+        return $this->isDestroyed;
     }
 
     /**
-     * Check SID is valid.
+     * Is valid ID.
      * @param  string $id
      * @return bool
      */
     final public function isValidId(string $id): bool
     {
         // see self.generateId()
-        return (bool) preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id);
+        return ((bool) preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
     }
 
     /**
-     * Check SID file is valid.
+     * Is valid file.
      * @param  string $id
      * @return bool
      */
@@ -363,13 +356,12 @@ final class Session
     }
 
     /**
-     * Start session and set session id.
+     * Start.
      * @return bool
      * @throws Froq\Session\SessionException
      */
     final public function start(): bool
     {
-        // check started?
         if ($this->isStarted) {
             return true;
         }
@@ -426,33 +418,29 @@ final class Session
     }
 
     /**
-     * Destroy session.
+     * Destroy.
      * @param  bool $deleteCookie
      * @return bool
      */
     final public function destroy(bool $deleteCookie = true): bool
     {
-        // check destroy before?
         if (!$this->isDestroyed) {
             $this->isDestroyed = session_destroy();
-            // reset session data
             if ($this->isDestroyed) {
                 $this->reset();
             }
-            // delete cookie?
             if ($deleteCookie) {
                 $this->deleteCookie();
             }
         }
 
-        // remove session id
         $this->id = null;
 
         return $this->isDestroyed;
     }
 
     /**
-     * Delete session cookie.
+     * Delete cookie.
      * @return void
      */
     final public function deleteCookie()
@@ -474,7 +462,6 @@ final class Session
      */
     final function generateId(): string
     {
-        // get a random salt
         $id = Salt::generate(Salt::LENGTH, false);
 
         // encode by length
@@ -485,12 +472,11 @@ final class Session
             case 128: $id = hash('sha512', $id); break;
         }
 
-        // return upper'ed
         return strtoupper($id);
     }
 
     /**
-     * Regenerate session id.
+     * Regenerate id.
      * @param  bool $deleteOldSession
      * @return bool
      * @throws Froq\Session\SessionException
@@ -504,7 +490,7 @@ final class Session
                     __method__, $file, $line
             ));
         }
-        // regenerate
+
         $return = session_regenerate_id($deleteOldSession);
 
         // store session id
@@ -514,28 +500,28 @@ final class Session
     }
 
     /**
-     * Flash messages.
+     * Flash.
      * @param  any $message
      * @return any
      */
     final public function flash($message = null)
     {
-        // get flash message
-        if ($message === null) {
-            $message = $this->get('@flash');
-
-            // remove
-            $this->remove('@flash');
-
-            return $message;
+        // set
+        if ($message !== null) {
+            return $this->set('@flash', $message);
         }
 
-        // set message
-        $this->set('@flash', $message);
+        $message = $this->get('@flash');
+
+        // remove
+        $this->remove('@flash');
+
+        return $message;
+
     }
 
     /**
-     * Reset session global.
+     * Reset.
      * @return void
      */
     final private function reset()
@@ -544,7 +530,7 @@ final class Session
     }
 
     /**
-     * Get session sub-array data.
+     * To array.
      * @return array
      */
     final public function toArray(): array
