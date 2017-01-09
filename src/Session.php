@@ -104,8 +104,10 @@ final class Session
             $this->options['length'] = $this->options['length_default'];
         }
 
+        $this->useStrictMode(true);
+
         // session is active?
-        if (!$this->isStarted || session_status() != PHP_SESSION_ACTIVE) {
+        if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
             // set defaults
             session_set_cookie_params(
                 (int)    $this->options['lifetime'],
@@ -290,7 +292,19 @@ final class Session
     }
 
     /**
-     * Get id.
+     * Set ID.
+     * @param  string $id
+     * @return void
+     */
+    final private function setId(string $id)
+    {
+        $this->useStrictMode(false);
+        session_id($this->id = $id);
+        $this->useStrictMode(true);
+    }
+
+    /**
+     * Get ID.
      * @return string|null
      */
     final public function getId()
@@ -341,8 +355,7 @@ final class Session
      */
     final public function isValidId(string $id): bool
     {
-        // see self.generateId()
-        return ((bool) preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
+        return ($id && !!preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
     }
 
     /**
@@ -352,7 +365,7 @@ final class Session
      */
     final public function isValidFile(string $id): bool
     {
-        return is_file(sprintf('%s/sess_%s', ini_get('session.save_path'), $id));
+        return ($id && is_file(sprintf('%s/sess_%s', session_save_path(), $id)));
     }
 
     /**
@@ -374,35 +387,31 @@ final class Session
             ));
         }
 
-        // set/check id
+        // check & set id
         $id = session_id();
         if ($this->isValidId($id)) {
-            $this->id = $id;
+            $this->setId($id);
         } else {
             $id = $_COOKIE[$this->name] ?? '';
             // hard and hard..
             if ($this->isValidId($id) && $this->isValidFile($id)) {
-                $this->id = $id;
+                $this->setId($id);
             } else {
-                // generate new one
-                $this->id = $this->generateId();
+                $this->setId($this->generateId());
             }
         }
-
-        /**
-         * Note: When using session cookies, specifying an id for session_id() will always send a new
-         * cookie when session_start() is called, regardless if the current session id is identical to
-         * the one being set.
-         */
-        session_id($this->id);
 
         // start session
         $this->isStarted = session_start();
         if (!$this->isStarted) {
-            // stop writing first
             session_write_close();
-
             throw new SessionException(sprintf("Session start is failed in '%s()'", __method__));
+        }
+
+        // check id
+        if (session_id() !== $this->id) {
+            session_write_close();
+            throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
         }
 
         // init sub-array
@@ -453,10 +462,10 @@ final class Session
     }
 
     /**
-     * Generate id.
+     * Generate ID.
      * @return string
      */
-    final function generateId(): string
+    final public function generateId(): string
     {
         $id = Salt::generate(Salt::LENGTH, false);
 
@@ -472,7 +481,7 @@ final class Session
     }
 
     /**
-     * Regenerate id.
+     * Regenerate ID.
      * @param  bool $deleteOldSession
      * @return bool
      * @throws Froq\Session\SessionException
@@ -489,8 +498,8 @@ final class Session
 
         $return = session_regenerate_id($deleteOldSession);
 
-        // store session id
-        $this->id = session_id($this->generateId());
+        // set/store id
+        $this->setId($this->generateId());
 
         return $return;
     }
@@ -504,16 +513,12 @@ final class Session
     {
         // set
         if ($message !== null) {
-            return $this->set('@flash', $message);
+            $this->set('@flash', $message);
+        } else { // get
+            $message = $this->get('@flash');
+            $this->remove('@flash');
+            return $message;
         }
-
-        $message = $this->get('@flash');
-
-        // remove
-        $this->remove('@flash');
-
-        return $message;
-
     }
 
     /**
@@ -537,5 +542,15 @@ final class Session
         }
 
         return $array;
+    }
+
+    /**
+     * Use strict mode.
+     * @param  bool $option
+     * @return void
+     */
+    final private function useStrictMode(bool $option)
+    {
+        ini_set('session.use_strict_mode', ($option ? '1' : '0'));
     }
 }
