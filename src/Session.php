@@ -104,8 +104,6 @@ final class Session
             $this->options['length'] = $this->options['length_default'];
         }
 
-        $this->useStrictMode(true);
-
         // session is active?
         if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
             // set defaults
@@ -298,9 +296,7 @@ final class Session
      */
     final private function setId(string $id)
     {
-        $this->useStrictMode(false);
         session_id($this->id = $id);
-        $this->useStrictMode(true);
     }
 
     /**
@@ -467,9 +463,14 @@ final class Session
      */
     final public function generateId(): string
     {
-        $id = Salt::generate(Salt::LENGTH, false);
+        // with PHP/7.1
+        if (function_exists('session_create_id')) {
+            $id = session_create_id();
+        } else {
+            $id = Salt::generate(Salt::LENGTH, false);
+        }
 
-        // encode by length
+        // hash by length
         switch ($this->options['length']) {
             case  32: $id = hash('md5', $id); break;
             case  40: $id = hash('sha1', $id); break;
@@ -542,15 +543,5 @@ final class Session
         }
 
         return $array;
-    }
-
-    /**
-     * Use strict mode.
-     * @param  bool $option
-     * @return void
-     */
-    final private function useStrictMode(bool $option)
-    {
-        ini_set('session.use_strict_mode', ($option ? '1' : '0'));
     }
 }
