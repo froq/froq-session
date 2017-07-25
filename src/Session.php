@@ -23,8 +23,7 @@ declare(strict_types=1);
 
 namespace Froq\Session;
 
-use Froq\Encryption\Salt;
-use Froq\Util\Traits\{SingleTrait, GetterTrait};
+use Froq\Util\Traits\SingleTrait;
 
 /**
  * @package    Froq
@@ -41,13 +40,7 @@ final class Session
     use SingleTrait;
 
     /**
-     * Getter.
-     * @var Froq\Util\Traits\GetterTrait
-     */
-    use GetterTrait;
-
-    /**
-     * ID.
+     * Id.
      * @var string
      */
     private $id;
@@ -59,16 +52,10 @@ final class Session
     private $name;
 
     /**
-     * Is started.
-     * @var bool
+     * Handler.
+     * @var object
      */
-    private $isStarted = false;
-
-    /**
-     * Is destroyed.
-     * @var bool
-     */
-    private $isDestroyed = false;
+    private $handler;
 
     /**
      * Options.
@@ -84,13 +71,27 @@ final class Session
         'length'           => 32, // ID length
         'length_default'   => 32,
         'length_available' => [32, 40, 64, 128],
+        'handler'          => null // object name for session_set_save_handler()
     ];
 
     /**
-     * Constructor.
-     * @param array $options
+     * Is started.
+     * @var bool
      */
-    final private function __construct(array $options = null)
+    private $isStarted = false;
+
+    /**
+     * Is destroyed.
+     * @var bool
+     */
+    private $isDestroyed = false;
+
+    /**
+     * Constructor.
+     * @param  array|null $options
+     * @throws Froq\Session\SessionException
+     */
+    private function __construct(array $options = null)
     {
         // merge options
         if ($options) {
@@ -102,6 +103,38 @@ final class Session
         // check/set length
         if (!in_array($this->options['length'], $this->options['length_available'])) {
             $this->options['length'] = $this->options['length_default'];
+        }
+
+        // handler
+        if (isset($this->options['handler'])) {
+            $handler = $this->options['handler'];
+            if (is_array($handler)) { // file given
+                @ [$handler, $handlerFile] = $handler;
+                if (!isset($handler, $handlerFile)) {
+                    throw new SessionException("Both handler and handler file are required!");
+                }
+
+                if (!is_file($handlerFile)) {
+                    throw new SessionException("Could not find given handler file '{$handlerFile}'!");
+                }
+
+                require_once($handlerFile);
+            }
+
+            if (!class_exists($handler, true)) {
+                throw new SessionException("Handler class '{$handler}' not found!");
+            }
+
+            $this->handler = new $handler($this);
+            if (!$this->handler instanceof SessionHandlerInterface) {
+                throw new SessionException("Handler must implement 'Froq\Session\SessionHandlerInterface' object");
+            }
+
+            if (method_exists($this->handler, 'init')) {
+                $this->handler->init();
+            }
+
+            session_set_save_handler($this->handler, true);
         }
 
         // session is active?
@@ -127,7 +160,7 @@ final class Session
      * Destructor.
      * @return void
      */
-    final public function __destruct()
+    public function __destruct()
     {
         session_register_shutdown();
     }
@@ -139,16 +172,11 @@ final class Session
      * @return void
      * @throws Froq\Session\SessionException
      */
-    final public function __set(string $key, $value)
+    public function __set(string $key, $value)
     {
         if (!isset($_SESSION[$this->name])) {
-            // stop writing first
-            session_abort();
-
             throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!",
-                    __class__
-            ));
+                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
 
         $_SESSION[$this->name][$key] = $value;
@@ -160,17 +188,14 @@ final class Session
      * @return any
      * @throws Froq\Session\SessionException
      */
-    final public function __get(string $key)
+    public function __get(string $key)
     {
         if (!isset($_SESSION[$this->name])) {
             throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!",
-                    __class__
-            ));
+                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
 
-        return array_key_exists($key, $_SESSION[$this->name])
-            ? $_SESSION[$this->name][$key] : null;
+        return array_key_exists($key, $_SESSION[$this->name]) ? $_SESSION[$this->name][$key] : null;
     }
 
     /**
@@ -179,13 +204,11 @@ final class Session
      * @return bool
      * @throws Froq\Session\SessionException
      */
-    final public function __isset(string $key)
+    public function __isset(string $key)
     {
         if (!isset($_SESSION[$this->name])) {
             throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!",
-                    __class__
-            ));
+                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
 
         return array_key_exists($key, $_SESSION[$this->name]);
@@ -197,13 +220,11 @@ final class Session
      * @return void
      * @throws Froq\Session\SessionException
      */
-    final public function __unset(string $key)
+    public function __unset(string $key)
     {
         if (!isset($_SESSION[$this->name])) {
             throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!",
-                    __class__
-            ));
+                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
 
         unset($_SESSION[$this->name][$key]);
@@ -215,7 +236,7 @@ final class Session
      * @param  any    $value
      * @return self
      */
-    final public function set(string $key, $value): self
+    public function set(string $key, $value): self
     {
         $this->__set($key, $value);
 
@@ -227,7 +248,7 @@ final class Session
      * @param  array $data
      * @return self
      */
-    final public function setAll(array $data): self
+    public function setAll(array $data): self
     {
         foreach ($data as $key => $value) {
             $this->__set($key, $value);
@@ -242,10 +263,9 @@ final class Session
      * @param  any    $valueDefault
      * @return any
      */
-    final public function get(string $key, $valueDefault = null)
+    public function get(string $key, $valueDefault = null)
     {
-        return (null !== ($value = $this->__get($key)))
-            ? $value : $valueDefault;
+        return (null !== ($value = $this->__get($key))) ? $value : $valueDefault;
     }
 
     /**
@@ -253,7 +273,7 @@ final class Session
      * @param  array $keys
      * @return array
      */
-    final public function getAll(array $keys): array
+    public function getAll(array $keys): array
     {
         $data = [];
         foreach ($keys as $key) {
@@ -268,7 +288,7 @@ final class Session
      * @param  string $key
      * @return self
      */
-    final public function remove(string $key): self
+    public function remove(string $key): self
     {
         $this->__unset($key);
 
@@ -280,7 +300,7 @@ final class Session
      * @param  array $keys
      * @return self
      */
-    final public function removeAll(array $keys): self
+    public function removeAll(array $keys): self
     {
         foreach ($keys as $key) {
             $this->__unset($key);
@@ -290,38 +310,47 @@ final class Session
     }
 
     /**
-     * Set ID.
+     * Set id.
      * @param  string $id
      * @return void
      */
-    final private function setId(string $id)
+    public function setId(string $id): void
     {
         session_id($this->id = $id);
     }
 
     /**
-     * Get ID.
-     * @return string|null
+     * Get id.
+     * @return ?string
      */
-    final public function getId()
+    public function getId(): ?string
     {
         return $this->id;
     }
 
     /**
      * Get name.
-     * @return string|null
+     * @return ?string
      */
-    final public function getName()
+    public function getName(): ?string
     {
         return $this->name;
+    }
+
+    /**
+     * Get handler.
+     * @return Froq\Session\SessionHandlerInterface
+     */
+    public function getHandler(): ?SessionHandlerInterface
+    {
+        return $this->handler;
     }
 
     /**
      * Get options.
      * @return array
      */
-    final public function getOptions(): array
+    public function getOptions(): array
     {
         return $this->options;
     }
@@ -330,7 +359,7 @@ final class Session
      * Is started.
      * @return bool
      */
-    final public function isStarted(): bool
+    public function isStarted(): bool
     {
         return $this->isStarted;
     }
@@ -339,28 +368,29 @@ final class Session
      * Is destroyed.
      * @return bool
      */
-    final public function isDestroyed(): bool
+    public function isDestroyed(): bool
     {
         return $this->isDestroyed;
     }
 
     /**
-     * Is valid ID.
+     * Is valid id.
      * @param  string $id
      * @return bool
      */
-    final public function isValidId(string $id): bool
+    public function isValidId(string $id): bool
     {
-        return ($id && !!preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
+        return !!($id && preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
     }
 
     /**
-     * Is valid file.
+     * Is valid source.
      * @param  string $id
      * @return bool
      */
-    final public function isValidFile(string $id): bool
+    public function isValidSource(string $id): bool
     {
+        // sess_: https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
         return ($id && is_file(sprintf('%s/sess_%s', session_save_path(), $id)));
     }
 
@@ -369,7 +399,7 @@ final class Session
      * @return bool
      * @throws Froq\Session\SessionException
      */
-    final public function start(): bool
+    public function start(): bool
     {
         if ($this->isStarted) {
             return true;
@@ -378,9 +408,7 @@ final class Session
         // check headers
         if (headers_sent($file, $line)) {
             throw new SessionException(sprintf(
-                "Call '%s()' before outputs have been sent. [output location: '%s:%s']",
-                    __method__, $file, $line
-            ));
+                "Call '%s()' before outputs have been sent. [output location: '%s:%s']", __method__, $file, $line));
         }
 
         // check & set id
@@ -388,9 +416,9 @@ final class Session
         if ($this->isValidId($id)) {
             $this->setId($id);
         } else {
-            $id = $_COOKIE[$this->name] ?? '';
+            $id = trim($_COOKIE[$this->name] ?? '');
             // hard and hard..
-            if ($this->isValidId($id) && $this->isValidFile($id)) {
+            if ($this->isValidId($id) && $this->isValidSource($id)) {
                 $this->setId($id);
             } else {
                 $this->setId($this->generateId());
@@ -423,7 +451,7 @@ final class Session
      * @param  bool $deleteCookie
      * @return bool
      */
-    final public function destroy(bool $deleteCookie = true): bool
+    public function destroy(bool $deleteCookie = true): bool
     {
         if (!$this->isDestroyed) {
             $this->isDestroyed = session_destroy();
@@ -444,31 +472,21 @@ final class Session
      * Delete cookie.
      * @return void
      */
-    final public function deleteCookie()
+    public function deleteCookie(): void
     {
         if (isset($_COOKIE[$this->name])) {
-            $cookieParams = session_get_cookie_params();
-            setcookie($this->name, '', 0,
-                $cookieParams['path'],
-                $cookieParams['domain'],
-                $cookieParams['secure'],
-                $cookieParams['httponly']
-            );
+            $params = session_get_cookie_params();
+            setcookie($this->name, '', 0, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
         }
     }
 
     /**
-     * Generate ID.
+     * Generate id.
      * @return string
      */
-    final public function generateId(): string
+    public function generateId(): string
     {
-        // with PHP/7.1
-        if (function_exists('session_create_id')) {
-            $id = session_create_id();
-        } else {
-            $id = Salt::generate(Salt::LENGTH, false);
-        }
+        $id = session_create_id();
 
         // hash by length
         switch ($this->options['length']) {
@@ -482,12 +500,12 @@ final class Session
     }
 
     /**
-     * Regenerate ID.
+     * Regenerate id.
      * @param  bool $deleteOldSession
      * @return bool
      * @throws Froq\Session\SessionException
      */
-    final public function regenerateId(bool $deleteOldSession = true): bool
+    public function regenerateId(bool $deleteOldSession = true): bool
     {
         // check headers sent?
         if (headers_sent($file, $line)) {
@@ -510,7 +528,7 @@ final class Session
      * @param  any $message
      * @return any
      */
-    final public function flash($message = null)
+    public function flash($message = null)
     {
         // set
         if ($message !== null) {
@@ -523,19 +541,10 @@ final class Session
     }
 
     /**
-     * Reset.
-     * @return void
-     */
-    final private function reset()
-    {
-        $_SESSION[$this->name] = [];
-    }
-
-    /**
      * To array.
      * @return array
      */
-    final public function toArray(): array
+    public function toArray(): array
     {
         $array = [];
         if (isset($_SESSION[$this->name])) {
@@ -543,5 +552,14 @@ final class Session
         }
 
         return $array;
+    }
+
+    /**
+     * Reset.
+     * @return void
+     */
+    private function reset(): void
+    {
+        $_SESSION[$this->name] = [];
     }
 }
