@@ -175,6 +175,7 @@ final class Session
     public function __set(string $key, $value)
     {
         if (!isset($_SESSION[$this->name])) {
+            session_abort();
             throw new SessionException(sprintf(
                 "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
@@ -191,6 +192,7 @@ final class Session
     public function __get(string $key)
     {
         if (!isset($_SESSION[$this->name])) {
+            session_abort();
             throw new SessionException(sprintf(
                 "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
@@ -207,6 +209,7 @@ final class Session
     public function __isset(string $key)
     {
         if (!isset($_SESSION[$this->name])) {
+            session_abort();
             throw new SessionException(sprintf(
                 "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
@@ -223,6 +226,7 @@ final class Session
     public function __unset(string $key)
     {
         if (!isset($_SESSION[$this->name])) {
+            session_abort();
             throw new SessionException(sprintf(
                 "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
         }
@@ -511,8 +515,7 @@ final class Session
         if (headers_sent($file, $line)) {
             throw new SessionException(sprintf(
                 "Call to '%s()' after outputs have been sent. [output location is '%s:%s']",
-                    __method__, $file, $line
-            ));
+                    __method__, $file, $line));
         }
 
         $return = session_regenerate_id($deleteOldSession);
