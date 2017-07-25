@@ -41,7 +41,7 @@ abstract class SessionHandler implements SessionHandlerInterface
      * Constructor.
      * @param Froq\Session\Session $session
      */
-    final public function __construct(Session $session)
+    public final function __construct(Session $session)
     {
         $this->session = $session;
     }
@@ -50,8 +50,16 @@ abstract class SessionHandler implements SessionHandlerInterface
      * Get session.
      * @return Froq\Session\Session
      */
-    final public function getSession(): Session
+    public final function getSession(): Session
     {
         return $this->session;
     }
+
+    // Note: If isValidId or/and isValidSource method(s) defined in child class
+    // of this object then these methods will be used in Froq! Session object.
+    // That could be useful when writing session data into a database or anywhere
+    // instead default session files.
+
+    // public abstract function isValidId(string $id): bool { /* validate id */ }
+    // public abstract function isValidSource(string $id): bool { /* validate source by id */ }
 }
