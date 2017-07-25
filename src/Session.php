@@ -384,6 +384,10 @@ final class Session
      */
     public function isValidId(string $id): bool
     {
+        if ($this->handler && method_exists($this->handler, 'isValidId')) {
+            return $this->handler->isValidId($id);
+        }
+
         return !!($id && preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
     }
 
@@ -394,8 +398,12 @@ final class Session
      */
     public function isValidSource(string $id): bool
     {
+        if ($this->handler && method_exists($this->handler, 'isValidSource')) {
+            return $this->handler->isValidSource($id);
+        }
+
         // sess_: https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return ($id && is_file(sprintf('%s/sess_%s', session_save_path(), $id)));
+        return !!($id && is_file(sprintf('%s/sess_%s', session_save_path(), $id)));
     }
 
     /**
