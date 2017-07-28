@@ -384,7 +384,7 @@ final class Session
      */
     public function isValidId(string $id): bool
     {
-        if ($this->handler && method_exists($this->handler, 'isValidId')) {
+        if ($this->handler != null && method_exists($this->handler, 'isValidId')) {
             return $this->handler->isValidId($id);
         }
 
@@ -398,7 +398,7 @@ final class Session
      */
     public function isValidSource(string $id): bool
     {
-        if ($this->handler && method_exists($this->handler, 'isValidSource')) {
+        if ($this->handler != null && method_exists($this->handler, 'isValidSource')) {
             return $this->handler->isValidSource($id);
         }
 
