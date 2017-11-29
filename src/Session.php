@@ -94,7 +94,7 @@ final class Session
     private function __construct(array $options = null)
     {
         // merge options
-        if ($options) {
+        if ($options != null) {
             $this->options = array_merge($this->options, $options);
         }
 
@@ -130,10 +130,12 @@ final class Session
                 throw new SessionException("Handler must implement 'Froq\Session\SessionHandlerInterface' object");
             }
 
+            // call init methods if exists
             if (method_exists($this->handler, 'init')) {
                 $this->handler->init();
             }
 
+            // set handler
             session_set_save_handler($this->handler, true);
         }
 
