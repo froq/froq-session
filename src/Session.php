@@ -65,16 +65,14 @@ final class Session
      * @var array
      */
     private $options = [
-        'name'             => 'SID',
-        'domain'           => '',
-        'path'             => '/',
-        'secure'           => false,
-        'httponly'         => false,
-        'lifetime'         => 0,
-        'length'           => 32, // ID length
-        'length_default'   => 32,
-        'length_available' => [32, 40, 64, 128],
-        'handler'          => null // object name for session_set_save_handler()
+        'name'            => 'SID',
+        'domain'          => '',
+        'path'            => '/',
+        'secure'          => false,
+        'httponly'        => false,
+        'lifetime'        => 0,
+        'length'          => 32, // ID length (32, 40, 64, 128)
+        'handler'         => null // object name for session_set_save_handler()
     ];
 
     /**
@@ -90,6 +88,12 @@ final class Session
     private $isDestroyed = false;
 
     /**
+     * Save path.
+     * @var string
+     */
+    private $savePath;
+
+    /**
      * Constructor.
      * @param  array|null $options
      * @throws Froq\Session\SessionException
@@ -103,11 +107,6 @@ final class Session
 
         $this->name = $this->options['name'];
 
-        // check/set length
-        if (!in_array($this->options['length'], $this->options['length_available'])) {
-            $this->options['length'] = $this->options['length_default'];
-        }
-
         // handler
         if (isset($this->options['handler'])) {
             $handler = $this->options['handler'];
@@ -117,11 +116,11 @@ final class Session
                     throw new SessionException("Both handler and handler file are required!");
                 }
 
-                if (!is_file($handlerFile)) {
+                if (!file_exists($handlerFile)) {
                     throw new SessionException("Could not find given handler file '{$handlerFile}'!");
                 }
 
-                require_once($handlerFile);
+                require_once $handlerFile;
             }
 
             if (!class_exists($handler, true)) {
@@ -141,6 +140,8 @@ final class Session
             // set handler
             session_set_save_handler($this->handler, true);
         }
+
+        $this->savePath = session_save_path();
 
         // session is active?
         if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
@@ -365,6 +366,15 @@ final class Session
     }
 
     /**
+     * Get save path.
+     * @return string
+     */
+    public function getSavePath(): string
+    {
+        return $this->savePath;
+    }
+
+    /**
      * Is started.
      * @return bool
      */
@@ -408,7 +418,7 @@ final class Session
         }
 
         // sess_: https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return !!($id && is_file(sprintf('%s/sess_%s', session_save_path(), $id)));
+        return !!($id && file_exists($this->savePath .'/sess_'. $id));
     }
 
     /**
@@ -500,6 +510,7 @@ final class Session
     /**
      * Generate id.
      * @return string
+     * @throws Froq\Session\SessionException
      */
     public function generateId(): string
     {
@@ -507,10 +518,12 @@ final class Session
 
         // hash by length
         switch ($this->options['length']) {
-            case  32: $id = hash('md5', $id); break;
-            case  40: $id = hash('sha1', $id); break;
-            case  64: $id = hash('sha256', $id); break;
+            case 32: $id = hash('md5', $id); break;
+            case 40: $id = hash('sha1', $id); break;
+            case 64: $id = hash('sha256', $id); break;
             case 128: $id = hash('sha512', $id); break;
+            default:
+                throw new SessionException("No valid length option given, only '32,40,64,128' are accepted!");
         }
 
         return strtoupper($id);
