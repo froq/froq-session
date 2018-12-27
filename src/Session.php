@@ -455,7 +455,7 @@ final class Session
             $this->isStarted = session_start();
             if (!$this->isStarted) {
                 session_write_close();
-                throw new SessionException(sprintf("Session start is failed in '%s()'", __method__));
+                throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
             }
 
             // check id
