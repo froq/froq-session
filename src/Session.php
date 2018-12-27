@@ -326,7 +326,9 @@ final class Session
      */
     public function setId(string $id): void
     {
-        session_id($this->id = $id);
+        $this->id = $id;
+
+        session_id($id); // update
     }
 
     /**
@@ -429,45 +431,43 @@ final class Session
     public function start(): bool
     {
         if ($this->isStarted) {
-            return true;
-        }
+            // check headers
+            if (headers_sent($file, $line)) {
+                throw new SessionException(sprintf(
+                    "Call '%s()' before outputs have been sent. [output location: '%s:%s']", __method__, $file, $line));
+            }
 
-        // check headers
-        if (headers_sent($file, $line)) {
-            throw new SessionException(sprintf(
-                "Call '%s()' before outputs have been sent. [output location: '%s:%s']", __method__, $file, $line));
-        }
-
-        // check & set id
-        $id = session_id();
-        if ($this->isValidId($id)) {
-            $this->setId($id);
-        } else {
-            $id = trim($_COOKIE[$this->name] ?? '');
-            // hard and hard..
-            if ($this->isValidId($id) && $this->isValidSource($id)) {
+            // check & set id
+            $id = session_id();
+            if ($this->isValidId($id)) {
                 $this->setId($id);
             } else {
-                $this->setId($this->generateId());
+                $id = trim($_COOKIE[$this->name] ?? '');
+                // hard and hard..
+                if ($this->isValidId($id) && $this->isValidSource($id)) {
+                    $this->setId($id);
+                } else {
+                    $this->setId($this->generateId());
+                }
             }
-        }
 
-        // start session
-        $this->isStarted = session_start();
-        if (!$this->isStarted) {
-            session_write_close();
-            throw new SessionException(sprintf("Session start is failed in '%s()'", __method__));
-        }
+            // start session
+            $this->isStarted = session_start();
+            if (!$this->isStarted) {
+                session_write_close();
+                throw new SessionException(sprintf("Session start is failed in '%s()'", __method__));
+            }
 
-        // check id
-        if (session_id() !== $this->id) {
-            session_write_close();
-            throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
-        }
+            // check id
+            if (session_id() !== $this->id) {
+                session_write_close();
+                throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
+            }
 
-        // init sub-array
-        if (!isset($_SESSION[$this->name])) {
-            $_SESSION[$this->name] = [];
+            // init sub-array
+            if (!isset($_SESSION[$this->name])) {
+                $_SESSION[$this->name] = [];
+            }
         }
 
         return $this->isStarted;
@@ -480,6 +480,8 @@ final class Session
      */
     public function destroy(bool $deleteCookie = true): bool
     {
+        $this->id = null;
+
         if (!$this->isDestroyed) {
             $this->isDestroyed = session_destroy();
             if ($this->isDestroyed) {
@@ -489,8 +491,6 @@ final class Session
                 $this->deleteCookie();
             }
         }
-
-        $this->id = null;
 
         return $this->isDestroyed;
     }
@@ -503,7 +503,8 @@ final class Session
     {
         if (isset($_COOKIE[$this->name])) {
             $params = session_get_cookie_params();
-            setcookie($this->name, '', 0, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+            setcookie($this->name, '', 0, $params['path'], $params['domain'], $params['secure'],
+                $params['httponly']);
         }
     }
 
