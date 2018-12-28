@@ -430,7 +430,7 @@ final class Session
      */
     public function start(): bool
     {
-        if ($this->isStarted) {
+        if (!$this->isStarted) {
             // check headers
             if (headers_sent($file, $line)) {
                 throw new SessionException(sprintf(
