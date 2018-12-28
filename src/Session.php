@@ -568,26 +568,16 @@ final class Session
             if ($this->isDestroyed) {
                 $this->reset();
             }
+
             if ($deleteCookie) {
-                $this->deleteCookie();
+                setcookie($this->name, '', 0,
+                    $this->cookieOptions['path'], $this->cookieOptions['domain'],
+                    $this->cookieOptions['secure'], $this->cookieOptions['httponly']
+                );
             }
         }
 
         return $this->isDestroyed;
-    }
-
-    /**
-     * Delete cookie.
-     * @return void
-     */
-    public function deleteCookie(): void
-    {
-        if (isset($_COOKIE[$this->name])) {
-            setcookie($this->name, '', 0,
-                $this->cookieOptions['path'], $this->cookieOptions['domain'],
-                $this->cookieOptions['secure'], $this->cookieOptions['httponly']
-            );
-        }
     }
 
     /**
@@ -614,29 +604,6 @@ final class Session
         }
 
         return $id;
-    }
-
-    /**
-     * Regenerate id.
-     * @param  bool $deleteOldSession
-     * @return bool
-     * @throws Froq\Session\SessionException
-     */
-    public function regenerateId(bool $deleteOldSession = true): bool
-    {
-        // check headers sent?
-        if (headers_sent($file, $line)) {
-            throw new SessionException(sprintf(
-                "Call to '%s()' after outputs have been sent. [output location is '%s:%s']",
-                    __method__, $file, $line));
-        }
-
-        $return = session_regenerate_id($deleteOldSession);
-
-        // set/store id
-        $this->setId($this->generateId());
-
-        return $return;
     }
 
     /**
