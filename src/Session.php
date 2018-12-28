@@ -43,6 +43,12 @@ final class Session
     use SingleTrait;
 
     /**
+     * Name.
+     * @const string
+     */
+    const NAME = 'SID';
+
+    /**
      * Id.
      * @var string
      */
@@ -71,11 +77,20 @@ final class Session
      * @var array
      */
     private $options = [
-        'name'     => 'SID', 'domain'     => '',    'path'       => '/',
-        'secure'   => false, 'httponly'   => false, 'lifetime'   => 0,
-        'hash'     => true,  'hashLength' => 40, // ID length (32, 40, 64, 128)
+        'name'     => 'SID',
+        'hash'     => true, 'hashLength'  => 40, // ID length (32, 40, 64, 128)
         'savePath' => null, 'saveHandler' => null,
+        'cookie'   => [
+            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
+            'secure'   => false, 'httponly' => false, 'samesite' => '', // PHP/7.3
+        ]
     ];
+
+    /**
+     * Cookie options.
+     * @var array
+     */
+    private $cookieOptions;
 
     /**
      * Is started.
@@ -96,18 +111,13 @@ final class Session
      */
     private function __construct(array $options = null)
     {
-        // merge options
         if ($options != null) {
             $this->options = array_merge($this->options, $options);
         }
 
         // save path
-        if ($this->options['savePath'] != null) {
-            $this->savePath = $this->options['savePath'];
-            session_save_path($this->savePath);
-        } else {
-            $this->savePath = session_save_path();
-        }
+        $this->savePath = $this->options['savePath'] ?? session_save_path();
+        session_save_path($this->savePath);
 
         // save handler
         if ($this->options['saveHandler'] != null) {
@@ -141,19 +151,28 @@ final class Session
             session_set_save_handler($this->saveHandler, true);
         }
 
+        // cookie options
+        $this->cookieOptions = $this->options['cookie'] ?? session_get_cookie_params();
+        $this->cookieOptions['lifetime'] = (int) ($this->cookieOptions['lifetime'] ?? 0);
+        $this->cookieOptions['path'] = (string) ($this->cookieOptions['path'] ?? '/');
+        $this->cookieOptions['domain'] = (string) ($this->cookieOptions['domain'] ?? '');
+        $this->cookieOptions['secure'] = (bool) ($this->cookieOptions['secure'] ?? false);
+        $this->cookieOptions['httponly'] = (bool) ($this->cookieOptions['httponly'] ?? false);
 
-        // start stuff
+
+        // start
         if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
-            // set defaults
-            session_set_cookie_params((int) $this->options['lifetime'],
-                (string) $this->options['path'], (string) $this->options['domain'],
-                    (bool) $this->options['secure'], (bool) $this->options['httponly']
+            // set cookie defaults
+            session_set_cookie_params(
+                $this->cookieOptions['lifetime'],
+                $this->cookieOptions['path'], $this->cookieOptions['domain'],
+                $this->cookieOptions['secure'], $this->cookieOptions['httponly']
             );
 
             // @note If id is specified, it will replace the current session id. session_id() needs to be called
             // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
             $id = session_id();
-            $name = $this->options['name'] ?? 'SID'; // @default
+            $name = $this->options['name'] ?? self::NAME; // @default
 
             if ($this->isValidId($id)) { // never happens, but obsession..
                 // ok
@@ -403,6 +422,15 @@ final class Session
     }
 
     /**
+     * Get cookie options.
+     * @return array
+     */
+    public function getCookieOptions(): array
+    {
+        return $this->cookieOptions;
+    }
+
+    /**
      * Is started.
      * @return bool
      */
@@ -431,8 +459,8 @@ final class Session
             return false;
         }
 
-        if ($this->handler != null && method_exists($this->handler, 'isValidId')) {
-            return $this->handler->isValidId($id);
+        if ($this->saveHandler != null && method_exists($this->saveHandler, 'isValidId')) {
+            return $this->saveHandler->isValidId($id);
         }
 
         static $idPattern;
@@ -475,8 +503,8 @@ final class Session
             return false;
         }
 
-        if ($this->handler != null && method_exists($this->handler, 'isValidSource')) {
-            return $this->handler->isValidSource($id);
+        if ($this->saveHandler != null && method_exists($this->saveHandler, 'isValidSource')) {
+            return $this->saveHandler->isValidSource($id);
         }
 
         // @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
@@ -549,9 +577,10 @@ final class Session
     public function deleteCookie(): void
     {
         if (isset($_COOKIE[$this->name])) {
-            $params = session_get_cookie_params();
-            setcookie($this->name, '', 0, $params['path'], $params['domain'], $params['secure'],
-                $params['httponly']);
+            setcookie($this->name, '', 0,
+                $this->cookieOptions['path'], $this->cookieOptions['domain'],
+                $this->cookieOptions['secure'], $this->cookieOptions['httponly']
+            );
         }
     }
 
