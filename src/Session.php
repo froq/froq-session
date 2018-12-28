@@ -152,12 +152,13 @@ final class Session
         }
 
         // cookie options
-        $this->cookieOptions = $this->options['cookie'] ?? session_get_cookie_params();
-        $this->cookieOptions['lifetime'] = (int) ($this->cookieOptions['lifetime'] ?? 0);
-        $this->cookieOptions['path'] = (string) ($this->cookieOptions['path'] ?? '/');
-        $this->cookieOptions['domain'] = (string) ($this->cookieOptions['domain'] ?? '');
-        $this->cookieOptions['secure'] = (bool) ($this->cookieOptions['secure'] ?? false);
-        $this->cookieOptions['httponly'] = (bool) ($this->cookieOptions['httponly'] ?? false);
+        $cookieOptions = $this->options['cookie'] ?? session_get_cookie_params();
+        $this->cookieOptions = [];
+        $this->cookieOptions['lifetime'] = (int) ($cookieOptions['lifetime'] ?? 0);
+        $this->cookieOptions['path'] = (string) ($cookieOptions['path'] ?? '/');
+        $this->cookieOptions['domain'] = (string) ($cookieOptions['domain'] ?? '');
+        $this->cookieOptions['secure'] = (bool) ($cookieOptions['secure'] ?? false);
+        $this->cookieOptions['httponly'] = (bool) ($cookieOptions['httponly'] ?? false);
 
 
         // start
@@ -172,6 +173,7 @@ final class Session
             // @note If id is specified, it will replace the current session id. session_id() needs to be called
             // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
             $id = session_id();
+            $idUpdate = false;
             $name = $this->options['name'] ?? self::NAME; // @default
 
             if ($this->isValidId($id)) { // never happens, but obsession..
@@ -181,11 +183,12 @@ final class Session
                 $id = $_COOKIE[$name] ?? '';
                 if (!$this->isValidId($id) || !$this->isValidSource($id)) {
                     $id = $this->generateId();
+                    $idUpdate = true;
                 }
             }
 
             // set id & name
-            $this->setId($id);
+            $this->setId($id, $idUpdate);
             $this->setName($name);
 
             $this->reset();
@@ -355,13 +358,16 @@ final class Session
     /**
      * Set id.
      * @param  string $id
+     * @param  bool   $update
      * @return void
      */
-    public function setId(string $id): void
+    public function setId(string $id, bool $update = true): void
     {
         $this->id = $id;
 
-        session_id($id); // update
+        if ($update) {
+            session_id($id);
+        }
     }
 
     /**
@@ -382,7 +388,7 @@ final class Session
     {
         $this->name = $name;
 
-        session_name($name); // update
+        session_name($name);
     }
 
     /**
