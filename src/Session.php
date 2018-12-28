@@ -46,7 +46,32 @@ final class Session
      * Name.
      * @const string
      */
-    const NAME = 'SID';
+    public const NAME = 'SID';
+
+    /**
+     * Hash defaults.
+     * @const any
+     */
+    public const HASH = true,
+                 HASH_LENGTH = 40; // ID length (32, 40, 64, 128)
+
+    /**
+     * Cookie defaults.
+     * @const any
+     */
+    public const COOKIE_LIFETIME = 0,
+                 COOKIE_PATH = '/',
+                 COOKIE_DOMAIN = '',
+                 COOKIE_SECURE = false,
+                 COOKIE_HTTPONLY = false,
+                 COOKIE_SAMESITE = ''; // PHP/7.3
+
+    /**
+     * Sid defaults.
+     * @const string
+     */
+    public const SID_LENGTH = '26',
+                 SID_BITSPERCHARACTER = '5';
 
     /**
      * Id.
@@ -76,15 +101,7 @@ final class Session
      * Options.
      * @var array
      */
-    private $options = [
-        'name'     => 'SID',
-        'hash'     => true, 'hashLength'  => 40, // ID length (32, 40, 64, 128)
-        'savePath' => null, 'saveHandler' => null,
-        'cookie'   => [
-            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
-            'secure'   => false, 'httponly' => false, 'samesite' => '', // PHP/7.3
-        ]
-    ];
+    private $options;
 
     /**
      * Cookie options.
@@ -111,17 +128,24 @@ final class Session
      */
     private function __construct(array $options = null)
     {
-        if ($options != null) {
-            $this->options = array_merge($this->options, $options);
-        }
+        $options = array_merge([
+            'name' => self::NAME,
+            'hash' => self::HASH, 'hashLength' => self::HASH_LENGTH,
+            'savePath' => null, 'saveHandler' => null,
+            'cookie' => [
+                'lifetime' => self::COOKIE_LIFETIME, 'path' => self::COOKIE_PATH,
+                'domain' => self::COOKIE_DOMAIN, 'secure' => self::COOKIE_SECURE,
+                'httponly' => self::COOKIE_HTTPONLY, 'samesite' => self::COOKIE_SAMESITE,
+            ]
+        ], (array) $options);
 
         // save path
-        $this->savePath = $this->options['savePath'] ?? session_save_path();
+        $this->savePath = $options['savePath'] ?? session_save_path();
         session_save_path($this->savePath);
 
         // save handler
-        if ($this->options['saveHandler'] != null) {
-            $saveHandler = $this->options['saveHandler'];
+        if ($options['saveHandler'] != null) {
+            $saveHandler = $options['saveHandler'];
             if (is_array($saveHandler)) { // file given
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if (!isset($saveHandler, $saveHandlerFile)) {
@@ -153,28 +177,27 @@ final class Session
 
         // cookie options
         $cookieOptions = $this->options['cookie'] ?? session_get_cookie_params();
-        $this->cookieOptions = [];
-        $this->cookieOptions['lifetime'] = (int) ($cookieOptions['lifetime'] ?? 0);
-        $this->cookieOptions['path'] = (string) ($cookieOptions['path'] ?? '/');
-        $this->cookieOptions['domain'] = (string) ($cookieOptions['domain'] ?? '');
-        $this->cookieOptions['secure'] = (bool) ($cookieOptions['secure'] ?? false);
-        $this->cookieOptions['httponly'] = (bool) ($cookieOptions['httponly'] ?? false);
+        $cookieOptions['lifetime'] = intval($cookieOptions['lifetime'] ?? self::COOKIE_LIFETIME);
+        $cookieOptions['path'] = strval($cookieOptions['path'] ?? self::COOKIE_PATH);
+        $cookieOptions['domain'] = strval($cookieOptions['domain'] ?? self::COOKIE_DOMAIN);
+        $cookieOptions['secure'] = boolval($cookieOptions['secure'] ?? self::COOKIE_SECURE);
+        $cookieOptions['httponly'] = boolval($cookieOptions['httponly'] ?? self::COOKIE_HTTPONLY);
 
+        // set options
+        $this->options = $options;
+        $this->cookieOptions = $cookieOptions;
 
         // start
         if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
             // set cookie defaults
-            session_set_cookie_params(
-                $this->cookieOptions['lifetime'],
-                $this->cookieOptions['path'], $this->cookieOptions['domain'],
-                $this->cookieOptions['secure'], $this->cookieOptions['httponly']
-            );
+            session_set_cookie_params($cookieOptions['lifetime'], $cookieOptions['path'],
+                $cookieOptions['domain'], $cookieOptions['secure'], $cookieOptions['httponly']);
 
             // @note If id is specified, it will replace the current session id. session_id() needs to be called
             // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
             $id = session_id();
             $idUpdate = false;
-            $name = $this->options['name'] ?? self::NAME; // @default
+            $name = $options['name'] ?? self::NAME; // @default
 
             if ($this->isValidId($id)) { // never happens, but obsession..
                 // ok
@@ -477,11 +500,11 @@ final class Session
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
                 // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
-                $idLength = ini_get('session.sid_length') ?: '26';
+                $idLength = ini_get('session.sid_length') ?: self::SID_LENGTH;
                 $idBitsPerCharacter = ini_get('session.sid_bits_per_character');
                 if ($idBitsPerCharacter == '') { // never happens, but obsession..
-                    ini_set('session.sid_length', '26');
-                    ini_set('session.sid_bits_per_character', ($idBitsPerCharacter = '5'));
+                    ini_set('session.sid_length', self::SID_LENGTH);
+                    ini_set('session.sid_bits_per_character', ($idBitsPerCharacter = self::SID_BITSPERCHARACTER));
                 }
 
                 $idCharacters = '';
