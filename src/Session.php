@@ -56,7 +56,7 @@ final class Session
 
     /**
      * Handler.
-     * @var object
+     * @var ?Froq\Session\SessionHandlerInterface
      */
     private $handler;
 
@@ -65,14 +65,11 @@ final class Session
      * @var array
      */
     private $options = [
-        'name'            => 'SID',
-        'domain'          => '',
-        'path'            => '/',
-        'secure'          => false,
-        'httponly'        => false,
-        'lifetime'        => 0,
-        'length'          => 32, // ID length (32, 40, 64, 128)
-        'handler'         => null // object name for session_set_save_handler()
+        'name'     => 'SID', 'domain'     => '',    'path'       => '/',
+        'secure'   => false, 'httponly'   => false, 'lifetime'   => 0,
+        'hash'     => true,  'hashLength' => 40, // ID length (32, 40, 64, 128)
+        'handler'  => null, // object name for session_set_save_handler()
+        'savePath' => null,
     ];
 
     /**
@@ -88,12 +85,6 @@ final class Session
     private $isDestroyed = false;
 
     /**
-     * Save path.
-     * @var string
-     */
-    private $savePath;
-
-    /**
      * Constructor.
      * @param  array|null $options
      * @throws Froq\Session\SessionException
@@ -105,10 +96,8 @@ final class Session
             $this->options = array_merge($this->options, $options);
         }
 
-        $this->name = $this->options['name'];
-
         // handler
-        if (isset($this->options['handler'])) {
+        if ($this->options['handler'] != null) {
             $handler = $this->options['handler'];
             if (is_array($handler)) { // file given
                 @ [$handler, $handlerFile] = $handler;
@@ -141,21 +130,37 @@ final class Session
             session_set_save_handler($this->handler, true);
         }
 
-        $this->savePath = session_save_path();
+        // save path
+        if ($this->options['savePath'] != null) {
+            session_save_path($this->options['savePath']);
+        }
 
-        // session is active?
+        // start stuff
         if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
             // set defaults
-            session_set_cookie_params(
-                (int)    $this->options['lifetime'],
-                (string) $this->options['path'],
-                (string) $this->options['domain'],
-                (bool)   $this->options['secure'],
-                (bool)   $this->options['httponly']
+            session_set_cookie_params((int) $this->options['lifetime'],
+                (string) $this->options['path'], (string) $this->options['domain'],
+                    (bool) $this->options['secure'], (bool) $this->options['httponly']
             );
 
-            // set session name
-            session_name($this->name);
+            // @note If id is specified, it will replace the current session id. session_id() needs to be called
+            // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
+            $id = session_id();
+            $name = $this->options['name'] ?? 'SID'; // @default
+
+            if ($this->isValidId($id)) { // never happens, but obsession..
+                // ok
+            } else {
+                // hard and hard..
+                $id = $_COOKIE[$name] ?? '';
+                if (!$this->isValidId($id) || !$this->isValidSource($id)) {
+                    $id = $this->generateId();
+                }
+            }
+
+            // set id & name
+            $this->setId($id);
+            $this->setName($name);
 
             $this->reset();
             $this->start();
@@ -241,30 +246,36 @@ final class Session
     }
 
     /**
+     * Has.
+     * @param  string $key
+     * @return bool
+     */
+    public function has(string $key): bool
+    {
+        return $this->__isset($key);
+    }
+
+    /**
      * Set.
      * @param  string $key
      * @param  any    $value
-     * @return self
+     * @return void
      */
-    public function set(string $key, $value): self
+    public function set(string $key, $value): void
     {
         $this->__set($key, $value);
-
-        return $this;
     }
 
     /**
      * Set all.
      * @param  array $data
-     * @return self
+     * @return void
      */
-    public function setAll(array $data): self
+    public function setAll(array $data): void
     {
         foreach ($data as $key => $value) {
             $this->__set($key, $value);
         }
-
-        return $this;
     }
 
     /**
@@ -296,27 +307,23 @@ final class Session
     /**
      * Remove.
      * @param  string $key
-     * @return self
+     * @return void
      */
-    public function remove(string $key): self
+    public function remove(string $key): void
     {
         $this->__unset($key);
-
-        return $this;
     }
 
     /**
      * Remove all.
      * @param  array $keys
-     * @return self
+     * @return void
      */
-    public function removeAll(array $keys): self
+    public function removeAll(array $keys): void
     {
         foreach ($keys as $key) {
             $this->__unset($key);
         }
-
-        return $this;
     }
 
     /**
@@ -333,25 +340,37 @@ final class Session
 
     /**
      * Get id.
-     * @return ?string
+     * @return string
      */
-    public function getId(): ?string
+    public function getId(): string
     {
         return $this->id;
     }
 
     /**
-     * Get name.
-     * @return ?string
+     * Set name.
+     * @param  string $name
+     * @return void
      */
-    public function getName(): ?string
+    public function setName(string $name): void
+    {
+        $this->name = $name;
+
+        session_name($name); // update
+    }
+
+    /**
+     * Get name.
+     * @return string
+     */
+    public function getName(): string
     {
         return $this->name;
     }
 
     /**
      * Get handler.
-     * @return Froq\Session\SessionHandlerInterface
+     * @return ?Froq\Session\SessionHandlerInterface
      */
     public function getHandler(): ?SessionHandlerInterface
     {
@@ -365,15 +384,6 @@ final class Session
     public function getOptions(): array
     {
         return $this->options;
-    }
-
-    /**
-     * Get save path.
-     * @return string
-     */
-    public function getSavePath(): string
-    {
-        return $this->savePath;
     }
 
     /**
@@ -396,31 +406,65 @@ final class Session
 
     /**
      * Is valid id.
-     * @param  string $id
+     * @param  ?string $id
      * @return bool
      */
-    public function isValidId(string $id): bool
+    public function isValidId(?string $id): bool
     {
+        if ($id == '') {
+            return false;
+        }
+
         if ($this->handler != null && method_exists($this->handler, 'isValidId')) {
             return $this->handler->isValidId($id);
         }
 
-        return !!($id && preg_match('~^[A-F0-9]{'. $this->options['length'] .'}$~', $id));
+        static $idPattern;
+        if ($idPattern == null) {
+            if ($this->options['hash']) {
+                $idPattern = '~^[A-F0-9]{'. $this->options['hashLength'] .'}$~';
+            } else {
+                // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
+                // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
+                // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
+                $idLength = ini_get('session.sid_length') ?: '26';
+                $idBitsPerCharacter = ini_get('session.sid_bits_per_character');
+                if ($idBitsPerCharacter == '') { // never happens, but obsession..
+                    ini_set('session.sid_length', '26');
+                    ini_set('session.sid_bits_per_character', ($idBitsPerCharacter = '5'));
+                }
+
+                $idCharacters = '';
+                switch ($idBitsPerCharacter) {
+                    case '4': $idCharacters = '0-9a-f'; break;
+                    case '5': $idCharacters = '0-9a-v'; break;
+                    case '6': $idCharacters = '0-9a-zA-Z-,'; break;
+                }
+
+                $idPattern = '~^['. $idCharacters .']{'. $idLength .'}$~';
+            }
+        }
+
+        return (bool) preg_match($idPattern, $id);
     }
 
     /**
      * Is valid source.
-     * @param  string $id
+     * @param  ?string $id
      * @return bool
      */
-    public function isValidSource(string $id): bool
+    public function isValidSource(?string $id): bool
     {
+        if ($id == '') {
+            return false;
+        }
+
         if ($this->handler != null && method_exists($this->handler, 'isValidSource')) {
             return $this->handler->isValidSource($id);
         }
 
-        // sess_: https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return !!($id && file_exists($this->savePath .'/sess_'. $id));
+        // @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
+        return file_exists(session_save_path() .'/sess_'. $id);
     }
 
     /**
@@ -434,21 +478,8 @@ final class Session
             // check headers
             if (headers_sent($file, $line)) {
                 throw new SessionException(sprintf(
-                    "Call '%s()' before outputs have been sent. [output location: '%s:%s']", __method__, $file, $line));
-            }
-
-            // check & set id
-            $id = session_id();
-            if ($this->isValidId($id)) {
-                $this->setId($id);
-            } else {
-                $id = trim($_COOKIE[$this->name] ?? '');
-                // hard and hard..
-                if ($this->isValidId($id) && $this->isValidSource($id)) {
-                    $this->setId($id);
-                } else {
-                    $this->setId($this->generateId());
-                }
+                    "Call '%s()' before outputs have been sent. [output location: '%s:%s']",
+                        __method__, $file, $line));
             }
 
             // start session
@@ -458,7 +489,7 @@ final class Session
                 throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
             }
 
-            // check id
+            // check id for last time
             if (session_id() !== $this->id) {
                 session_write_close();
                 throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
@@ -518,16 +549,20 @@ final class Session
         $id = session_create_id();
 
         // hash by length
-        switch ($this->options['length']) {
-            case 32: $id = hash('md5', $id); break;
-            case 40: $id = hash('sha1', $id); break;
-            case 64: $id = hash('sha256', $id); break;
-            case 128: $id = hash('sha512', $id); break;
-            default:
-                throw new SessionException("No valid length option given, only '32,40,64,128' are accepted!");
+        if ($this->options['hash']) {
+            switch ($this->options['hashLength']) {
+                case 32: $id = hash('md5', $id); break;
+                case 40: $id = hash('sha1', $id); break;
+                case 64: $id = hash('sha256', $id); break;
+                case 128: $id = hash('sha512', $id); break;
+                default:
+                    throw new SessionException("No valid 'hashLength' option given, only ".
+                        "'32,40,64,128' are accepted!");
+            }
+            $id = strtoupper($id);
         }
 
-        return strtoupper($id);
+        return $id;
     }
 
     /**
