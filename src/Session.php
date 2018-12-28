@@ -55,10 +55,16 @@ final class Session
     private $name;
 
     /**
-     * Handler.
+     * Save path.
+     * @var string
+     */
+    private $savePath;
+
+    /**
+     * Save handler.
      * @var ?Froq\Session\SessionHandlerInterface
      */
-    private $handler;
+    private $saveHandler;
 
     /**
      * Options.
@@ -68,8 +74,7 @@ final class Session
         'name'     => 'SID', 'domain'     => '',    'path'       => '/',
         'secure'   => false, 'httponly'   => false, 'lifetime'   => 0,
         'hash'     => true,  'hashLength' => 40, // ID length (32, 40, 64, 128)
-        'handler'  => null, // object name for session_set_save_handler()
-        'savePath' => null,
+        'savePath' => null, 'saveHandler' => null,
     ];
 
     /**
@@ -96,44 +101,46 @@ final class Session
             $this->options = array_merge($this->options, $options);
         }
 
-        // handler
-        if ($this->options['handler'] != null) {
-            $handler = $this->options['handler'];
-            if (is_array($handler)) { // file given
-                @ [$handler, $handlerFile] = $handler;
-                if (!isset($handler, $handlerFile)) {
+        // save path
+        if ($this->options['savePath'] != null) {
+            $this->savePath = $this->options['savePath'];
+            session_save_path($this->savePath);
+        } else {
+            $this->savePath = session_save_path();
+        }
+
+        // save handler
+        if ($this->options['saveHandler'] != null) {
+            $saveHandler = $this->options['saveHandler'];
+            if (is_array($saveHandler)) { // file given
+                @ [$saveHandler, $saveHandlerFile] = $saveHandler;
+                if (!isset($saveHandler, $saveHandlerFile)) {
                     throw new SessionException("Both handler and handler file are required!");
                 }
-
-                if (!file_exists($handlerFile)) {
-                    throw new SessionException("Could not find given handler file '{$handlerFile}'!");
+                if (!file_exists($saveHandlerFile)) {
+                    throw new SessionException("Could not find given handler file '{$saveHandlerFile}'!");
                 }
-
-                require_once $handlerFile;
+                require_once $saveHandlerFile;
             }
 
-            if (!class_exists($handler, true)) {
-                throw new SessionException("Handler class '{$handler}' not found!");
+            if (!class_exists($saveHandler, true)) {
+                throw new SessionException("Handler class '{$saveHandler}' not found!");
             }
 
-            $this->handler = new $handler($this);
-            if (!$this->handler instanceof SessionHandlerInterface) {
+            $this->saveHandler = new $saveHandler($this);
+            if (!$this->saveHandler instanceof SessionHandlerInterface) {
                 throw new SessionException("Handler must implement 'Froq\Session\SessionHandlerInterface' object");
             }
 
             // call init methods if exists
-            if (method_exists($this->handler, 'init')) {
-                $this->handler->init();
+            if (method_exists($this->saveHandler, 'init')) {
+                $this->saveHandler->init();
             }
 
-            // set handler
-            session_set_save_handler($this->handler, true);
+            // set save handler
+            session_set_save_handler($this->saveHandler, true);
         }
 
-        // save path
-        if ($this->options['savePath'] != null) {
-            session_save_path($this->options['savePath']);
-        }
 
         // start stuff
         if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
@@ -369,12 +376,21 @@ final class Session
     }
 
     /**
-     * Get handler.
+     * Get save handler.
      * @return ?Froq\Session\SessionHandlerInterface
      */
-    public function getHandler(): ?SessionHandlerInterface
+    public function getSaveHandler(): ?SessionHandlerInterface
     {
-        return $this->handler;
+        return $this->saveHandler;
+    }
+
+    /**
+     * Get save path.
+     * @return string
+     */
+    public function getSavePath(): string
+    {
+        return $this->savePath;
     }
 
     /**
@@ -464,7 +480,7 @@ final class Session
         }
 
         // @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return file_exists(session_save_path() .'/sess_'. $id);
+        return file_exists($this->savePath .'/sess_'. $id);
     }
 
     /**
