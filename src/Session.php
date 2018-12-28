@@ -561,9 +561,8 @@ final class Session
      */
     public function destroy(bool $deleteCookie = true): bool
     {
-        $this->id = null;
-
         if (!$this->isDestroyed) {
+            $this->id = '';
             $this->isDestroyed = session_destroy();
             if ($this->isDestroyed) {
                 $this->reset();
