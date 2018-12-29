@@ -212,8 +212,12 @@ final class Session
             }
 
             // set id & name
-            $this->setId($id, $idUpdate);
-            $this->setName($name);
+            $this->id = $id;
+            $this->name = $name;
+            if ($idUpdate) {
+                session_id($id);
+            }
+            session_name($name);
 
             $this->reset();
             $this->start();
@@ -230,39 +234,12 @@ final class Session
     }
 
     /**
-     * Set id.
-     * @param  string $id
-     * @param  bool   $update
-     * @return void
-     */
-    public function setId(string $id, bool $update = true): void
-    {
-        $this->id = $id;
-
-        if ($update) {
-            session_id($id);
-        }
-    }
-
-    /**
      * Get id.
      * @return string
      */
     public function getId(): string
     {
         return $this->id;
-    }
-
-    /**
-     * Set name.
-     * @param  string $name
-     * @return void
-     */
-    public function setName(string $name): void
-    {
-        $this->name = $name;
-
-        session_name($name);
     }
 
     /**
