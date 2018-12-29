@@ -116,10 +116,10 @@ final class Session
     private $isStarted = false;
 
     /**
-     * Is destroyed.
+     * Is ended.
      * @var bool
      */
-    private $isDestroyed = false;
+    private $isEnded = false;
 
     /**
      * Constructor.
@@ -177,7 +177,7 @@ final class Session
         }
 
         // cookie options
-        $cookieOptions = $this->options['cookie'] ?? session_get_cookie_params();
+        $cookieOptions = $options['cookie'] ?? session_get_cookie_params();
         $cookieOptions['lifetime'] = intval($cookieOptions['lifetime'] ?? self::COOKIE_LIFETIME);
         $cookieOptions['path'] = strval($cookieOptions['path'] ?? self::COOKIE_PATH);
         $cookieOptions['domain'] = strval($cookieOptions['domain'] ?? self::COOKIE_DOMAIN);
@@ -320,12 +320,12 @@ final class Session
     }
 
     /**
-     * Is destroyed.
+     * Is ended.
      * @return bool
      */
-    public function isDestroyed(): bool
+    public function isEnded(): bool
     {
-        return $this->isDestroyed;
+        return $this->isEnded;
     }
 
     /**
@@ -372,10 +372,10 @@ final class Session
      */
     public function end(bool $deleteCookie = true): bool
     {
-        if (!$this->isDestroyed) {
+        if (!$this->isEnded) {
             $this->id = '';
-            $this->isDestroyed = session_destroy();
-            if ($this->isDestroyed) {
+            $this->isEnded = session_destroy();
+            if ($this->isEnded) {
                 $this->reset();
             }
 
@@ -387,7 +387,7 @@ final class Session
             }
         }
 
-        return $this->isDestroyed;
+        return $this->isEnded;
     }
 
     /**
