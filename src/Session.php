@@ -229,152 +229,63 @@ final class Session
     }
 
     /**
-     * Set magic.
-     * @param  string $key
-     * @param  any    $value
-     * @return void
-     * @throws Froq\Session\SessionException
-     */
-    public function __set(string $key, $value)
-    {
-        if (!isset($_SESSION[$this->name])) {
-            session_abort();
-            throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
-        }
-
-        $_SESSION[$this->name][$key] = $value;
-    }
-
-    /**
-     * Get magic.
-     * @param  string $key
-     * @return any
-     * @throws Froq\Session\SessionException
-     */
-    public function __get(string $key)
-    {
-        if (!isset($_SESSION[$this->name])) {
-            session_abort();
-            throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
-        }
-
-        return array_key_exists($key, $_SESSION[$this->name]) ? $_SESSION[$this->name][$key] : null;
-    }
-
-    /**
-     * Isset magic.
-     * @param  string $key
-     * @return bool
-     * @throws Froq\Session\SessionException
-     */
-    public function __isset(string $key)
-    {
-        if (!isset($_SESSION[$this->name])) {
-            session_abort();
-            throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
-        }
-
-        return array_key_exists($key, $_SESSION[$this->name]);
-    }
-
-    /**
-     * Unset magic.
-     * @param  string $key
-     * @return void
-     * @throws Froq\Session\SessionException
-     */
-    public function __unset(string $key)
-    {
-        if (!isset($_SESSION[$this->name])) {
-            session_abort();
-            throw new SessionException(sprintf(
-                "Session not started yet, call first '%s::start()' or use isset() first!", __class__));
-        }
-
-        unset($_SESSION[$this->name][$key]);
-    }
-
-    /**
      * Has.
      * @param  string $key
      * @return bool
      */
     public function has(string $key): bool
     {
-        return $this->__isset($key);
+        return array_key_exists($key, $_SESSION[$this->name]);
     }
 
     /**
      * Set.
-     * @param  string $key
-     * @param  any    $value
+     * @param  string|array $key
+     * @param  any          $value
      * @return void
      */
-    public function set(string $key, $value): void
+    public function set($key, $value = null)
     {
-        $this->__set($key, $value);
-    }
-
-    /**
-     * Set all.
-     * @param  array $data
-     * @return void
-     */
-    public function setAll(array $data): void
-    {
-        foreach ($data as $key => $value) {
-            $this->__set($key, $value);
+        if (is_array($key)) {
+            // must be assoc array
+            foreach ($key as $key => $value) {
+                $_SESSION[$this->name][$key] = $value;
+            }
+        } else {
+            $_SESSION[$this->name][$key] = $value;
         }
     }
 
     /**
      * Get.
-     * @param  string $key
-     * @param  any    $valueDefault
+     * @param  string|array $key
+     * @param  any          $valueDefault
      * @return any
      */
-    public function get(string $key, $valueDefault = null)
+    public function get($key, $valueDefault = null)
     {
-        return (null !== ($value = $this->__get($key))) ? $value : $valueDefault;
-    }
-
-    /**
-     * Get all.
-     * @param  array $keys
-     * @return array
-     */
-    public function getAll(array $keys): array
-    {
-        $data = [];
-        foreach ($keys as $key) {
-            $data[$keys] = $this->__get($key);
+        if (is_array($key)) {
+            $values = [];
+            foreach ($key as $key) {
+                $values[$key] = array_key_exists($key, $_SESSION[$this->name])
+                    ? $_SESSION[$this->name][$key] : $valueDefault;
+            }
+            return $values;
         }
 
-        return $data;
+        return array_key_exists($key, $_SESSION[$this->name])
+            ? $_SESSION[$this->name][$key] : $valueDefault;
     }
 
     /**
      * Remove.
-     * @param  string $key
+     * @param  string|array $key
      * @return void
      */
-    public function remove(string $key): void
+    public function remove($key)
     {
-        $this->__unset($key);
-    }
-
-    /**
-     * Remove all.
-     * @param  array $keys
-     * @return void
-     */
-    public function removeAll(array $keys): void
-    {
-        foreach ($keys as $key) {
-            $this->__unset($key);
+        foreach ((array) $key as $key) {
+            unset($_SESSION[$this->name][$key]);
         }
     }
 
@@ -578,11 +489,11 @@ final class Session
     }
 
     /**
-     * Destroy.
+     * End.
      * @param  bool $deleteCookie
      * @return bool
      */
-    public function destroy(bool $deleteCookie = true): bool
+    public function end(bool $deleteCookie = true): bool
     {
         if (!$this->isDestroyed) {
             $this->id = '';
