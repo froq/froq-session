@@ -154,6 +154,7 @@ final class Session
                 if (!file_exists($saveHandlerFile)) {
                     throw new SessionException("Could not find given handler file '{$saveHandlerFile}'!");
                 }
+
                 require_once $saveHandlerFile;
             }
 
@@ -229,67 +230,6 @@ final class Session
     }
 
     /**
-     * Has.
-     * @param  string $key
-     * @return bool
-     */
-    public function has(string $key): bool
-    {
-        return array_key_exists($key, $_SESSION[$this->name]);
-    }
-
-    /**
-     * Set.
-     * @param  string|array $key
-     * @param  any          $value
-     * @return void
-     */
-    public function set($key, $value = null)
-    {
-        if (is_array($key)) {
-            // must be assoc array
-            foreach ($key as $key => $value) {
-                $_SESSION[$this->name][$key] = $value;
-            }
-        } else {
-            $_SESSION[$this->name][$key] = $value;
-        }
-    }
-
-    /**
-     * Get.
-     * @param  string|array $key
-     * @param  any          $valueDefault
-     * @return any
-     */
-    public function get($key, $valueDefault = null)
-    {
-        if (is_array($key)) {
-            $values = [];
-            foreach ($key as $key) {
-                $values[$key] = array_key_exists($key, $_SESSION[$this->name])
-                    ? $_SESSION[$this->name][$key] : $valueDefault;
-            }
-            return $values;
-        }
-
-        return array_key_exists($key, $_SESSION[$this->name])
-            ? $_SESSION[$this->name][$key] : $valueDefault;
-    }
-
-    /**
-     * Remove.
-     * @param  string|array $key
-     * @return void
-     */
-    public function remove($key)
-    {
-        foreach ((array) $key as $key) {
-            unset($_SESSION[$this->name][$key]);
-        }
-    }
-
-    /**
      * Set id.
      * @param  string $id
      * @param  bool   $update
@@ -335,21 +275,21 @@ final class Session
     }
 
     /**
-     * Get save handler.
-     * @return ?Froq\Session\SessionHandlerInterface
-     */
-    public function getSaveHandler(): ?SessionHandlerInterface
-    {
-        return $this->saveHandler;
-    }
-
-    /**
      * Get save path.
      * @return string
      */
     public function getSavePath(): string
     {
         return $this->savePath;
+    }
+
+    /**
+     * Get save handler.
+     * @return ?Froq\Session\SessionHandlerInterface
+     */
+    public function getSaveHandler(): ?SessionHandlerInterface
+    {
+        return $this->saveHandler;
     }
 
     /**
@@ -385,6 +325,68 @@ final class Session
      */
     public function isDestroyed(): bool
     {
+        return $this->isDestroyed;
+    }
+
+    /**
+     * Start.
+     * @return bool
+     * @throws Froq\Session\SessionException
+     */
+    public function start(): bool
+    {
+        if (!$this->isStarted) {
+            // check headers
+            if (headers_sent($file, $line)) {
+                throw new SessionException(sprintf(
+                    "Call '%s()' before outputs have been sent. [output location: '%s:%s']",
+                        __method__, $file, $line));
+            }
+
+            // start session
+            $this->isStarted = session_start();
+            if (!$this->isStarted) {
+                session_write_close();
+                throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
+            }
+
+            // check id for last time
+            if (session_id() !== $this->id) {
+                session_write_close();
+                throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
+            }
+
+            // init sub-array
+            if (!isset($_SESSION[$this->name])) {
+                $_SESSION[$this->name] = [];
+            }
+        }
+
+        return $this->isStarted;
+    }
+
+    /**
+     * End.
+     * @param  bool $deleteCookie
+     * @return bool
+     */
+    public function end(bool $deleteCookie = true): bool
+    {
+        if (!$this->isDestroyed) {
+            $this->id = '';
+            $this->isDestroyed = session_destroy();
+            if ($this->isDestroyed) {
+                $this->reset();
+            }
+
+            if ($deleteCookie) {
+                setcookie($this->name, '', 0,
+                    $this->cookieOptions['path'], $this->cookieOptions['domain'],
+                    $this->cookieOptions['secure'], $this->cookieOptions['httponly']
+                );
+            }
+        }
+
         return $this->isDestroyed;
     }
 
@@ -452,68 +454,6 @@ final class Session
     }
 
     /**
-     * Start.
-     * @return bool
-     * @throws Froq\Session\SessionException
-     */
-    public function start(): bool
-    {
-        if (!$this->isStarted) {
-            // check headers
-            if (headers_sent($file, $line)) {
-                throw new SessionException(sprintf(
-                    "Call '%s()' before outputs have been sent. [output location: '%s:%s']",
-                        __method__, $file, $line));
-            }
-
-            // start session
-            $this->isStarted = session_start();
-            if (!$this->isStarted) {
-                session_write_close();
-                throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
-            }
-
-            // check id for last time
-            if (session_id() !== $this->id) {
-                session_write_close();
-                throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
-            }
-
-            // init sub-array
-            if (!isset($_SESSION[$this->name])) {
-                $_SESSION[$this->name] = [];
-            }
-        }
-
-        return $this->isStarted;
-    }
-
-    /**
-     * End.
-     * @param  bool $deleteCookie
-     * @return bool
-     */
-    public function end(bool $deleteCookie = true): bool
-    {
-        if (!$this->isDestroyed) {
-            $this->id = '';
-            $this->isDestroyed = session_destroy();
-            if ($this->isDestroyed) {
-                $this->reset();
-            }
-
-            if ($deleteCookie) {
-                setcookie($this->name, '', 0,
-                    $this->cookieOptions['path'], $this->cookieOptions['domain'],
-                    $this->cookieOptions['secure'], $this->cookieOptions['httponly']
-                );
-            }
-        }
-
-        return $this->isDestroyed;
-    }
-
-    /**
      * Generate id.
      * @return string
      * @throws Froq\Session\SessionException
@@ -537,6 +477,67 @@ final class Session
         }
 
         return $id;
+    }
+
+    /**
+     * Has.
+     * @param  string $key
+     * @return bool
+     */
+    public function has(string $key): bool
+    {
+        return array_key_exists($key, $_SESSION[$this->name]);
+    }
+
+    /**
+     * Set.
+     * @param  string|array $key
+     * @param  any          $value
+     * @return void
+     */
+    public function set($key, $value = null)
+    {
+        if (is_array($key)) {
+            // must be assoc array
+            foreach ($key as $key => $value) {
+                $_SESSION[$this->name][$key] = $value;
+            }
+        } else {
+            $_SESSION[$this->name][$key] = $value;
+        }
+    }
+
+    /**
+     * Get.
+     * @param  string|array $key
+     * @param  any          $valueDefault
+     * @return any
+     */
+    public function get($key, $valueDefault = null)
+    {
+        if (is_array($key)) {
+            $values = [];
+            foreach ($key as $key) {
+                $values[$key] = array_key_exists($key, $_SESSION[$this->name])
+                    ? $_SESSION[$this->name][$key] : $valueDefault;
+            }
+            return $values;
+        }
+
+        return array_key_exists($key, $_SESSION[$this->name])
+            ? $_SESSION[$this->name][$key] : $valueDefault;
+    }
+
+    /**
+     * Remove.
+     * @param  string|array $key
+     * @return void
+     */
+    public function remove($key)
+    {
+        foreach ((array) $key as $key) {
+            unset($_SESSION[$this->name][$key]);
+        }
     }
 
     /**
