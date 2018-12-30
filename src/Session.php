@@ -146,7 +146,7 @@ final class Session
             if (!is_dir($this->savePath)) {
                 $ok = @mkdir($this->savePath, 0750, true);
                 if (!$ok) {
-                    throw new SessionException(sprintf('Cannot make directory, error[%s].',
+                    throw new SessionException(sprintf('Cannot make directory, error[%s]',
                         error_get_last()['message'] ?? 'Unknown'));
                 }
             }
@@ -161,17 +161,17 @@ final class Session
             if (is_array($saveHandler)) { // file given
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if (!isset($saveHandler, $saveHandlerFile)) {
-                    throw new SessionException("Both handler and handler file are required!");
+                    throw new SessionException("Both handler and handler file are required");
                 }
                 if (!file_exists($saveHandlerFile)) {
-                    throw new SessionException("Could not find given handler file '{$saveHandlerFile}'!");
+                    throw new SessionException("Could not find given handler file '{$saveHandlerFile}'");
                 }
 
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler, true)) {
-                throw new SessionException("Handler class '{$saveHandler}' not found!");
+                throw new SessionException("Handler class '{$saveHandler}' not found");
             }
 
             $this->saveHandler = new $saveHandler($this);
@@ -327,9 +327,8 @@ final class Session
         if (!$this->isStarted) {
             // check headers
             if (headers_sent($file, $line)) {
-                throw new SessionException(sprintf(
-                    "Call '%s()' before outputs have been sent. [output location: '%s:%s']",
-                        __method__, $file, $line));
+                throw new SessionException(sprintf("Call '%s()' before outputs have been sent, ".
+                    "[output location: '%s:%s']", __method__, $file, $line));
             }
 
             // start session
@@ -460,7 +459,7 @@ final class Session
                 case 128: $id = hash('sha512', $id); break;
                 default:
                     throw new SessionException("No valid 'hashLength' option given, only ".
-                        "'32,40,64,128' are accepted!");
+                        "'32,40,64,128' are accepted");
             }
             $id = strtoupper($id);
         }
