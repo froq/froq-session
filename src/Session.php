@@ -140,7 +140,19 @@ final class Session
         ], (array) $options);
 
         // save path
-        $this->savePath = $options['savePath'] ?? session_save_path();
+        if ($options['savePath'] != null) {
+            $this->savePath = $options['savePath'];
+            // check/make if option provided
+            if (!is_dir($this->savePath)) {
+                $ok = @mkdir($this->savePath, 0750, true);
+                if (!$ok) {
+                    throw new SessionException(sprintf('Cannot make directory, error[%s].',
+                        error_get_last()['message'] ?? 'Unknown'));
+                }
+            }
+        } else {
+            $this->savePath = session_save_path();
+        }
         session_save_path($this->savePath);
 
         // save handler
@@ -426,7 +438,7 @@ final class Session
             return $this->saveHandler->isValidSource($id);
         }
 
-        // @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
+        // for 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
         return file_exists($this->savePath .'/sess_'. $id);
     }
 
