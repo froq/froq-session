@@ -327,8 +327,8 @@ final class Session
         if (!$this->isStarted) {
             // check headers
             if (headers_sent($file, $line)) {
-                throw new SessionException(sprintf("Call '%s()' before outputs have been sent, ".
-                    "[output location: '%s:%s']", __method__, $file, $line));
+                throw new SessionException(sprintf("Cannot use '%s()', headers already sent in %s:%s",
+                    __method__, $file, $line));
             }
 
             // start session
