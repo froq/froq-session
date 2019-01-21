@@ -31,6 +31,7 @@ namespace Froq\Session;
  * @subpackage Froq\Session
  * @object     Froq\Session\SessionHandlerInterface
  * @author     Kerem Güneş <k-gun@mail.com>
+ * @since      1.0
  */
 interface SessionHandlerInterface extends \SessionHandlerInterface
 {}

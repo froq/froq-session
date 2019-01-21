@@ -31,6 +31,7 @@ namespace Froq\Session;
  * @subpackage Froq\Session
  * @object     Froq\Session\SessionException
  * @author     Kerem Güneş <k-gun@mail.com>
+ * @since      1.0
  */
 final class SessionException extends \Exception
 {}

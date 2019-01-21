@@ -33,6 +33,7 @@ use Froq\Util\Traits\SingleTrait;
  * @subpackage Froq\Session
  * @object     Froq\Session\Session
  * @author     Kerem Güneş <k-gun@mail.com>
+ * @since      1.0
  */
 final class Session
 {
