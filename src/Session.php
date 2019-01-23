@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Session;
 
-use Froq\Util\Traits\SingleTrait;
+use Froq\Util\Traits\SingletonTrait;
 
 /**
  * @package    Froq
@@ -39,9 +39,9 @@ final class Session
 {
     /**
      * Single.
-     * @var Froq\Util\Traits\SingleTrait
+     * @var Froq\Util\Traits\SingletonTrait
      */
-    use SingleTrait;
+    use SingletonTrait;
 
     /**
      * Name.
