@@ -38,7 +38,7 @@ use Froq\Util\Traits\SingletonTrait;
 final class Session
 {
     /**
-     * Single.
+     * Singleton trait.
      * @var Froq\Util\Traits\SingletonTrait
      */
     use SingletonTrait;
