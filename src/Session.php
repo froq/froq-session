@@ -482,9 +482,9 @@ final class Session
      * Set.
      * @param  string|array $key
      * @param  any          $value
-     * @return void
+     * @return self
      */
-    public function set($key, $value = null)
+    public function set($key, $value = null): self
     {
         if (is_array($key)) {
             // must be assoc array
@@ -494,6 +494,8 @@ final class Session
         } else {
             $_SESSION[$this->name][$key] = $value;
         }
+
+        return $this;
     }
 
     /**
@@ -522,7 +524,7 @@ final class Session
      * @param  string|array $key
      * @return void
      */
-    public function remove($key)
+    public function remove($key): void
     {
         foreach ((array) $key as $key) {
             unset($_SESSION[$this->name][$key]);
