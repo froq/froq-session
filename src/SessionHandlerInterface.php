@@ -24,14 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Session;
+namespace froq\session;
 
 /**
- * @package    Froq
- * @subpackage Froq\Session
- * @object     Froq\Session\SessionHandlerInterface
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      1.0
+ * Session handler interface.
+ * @package froq\session
+ * @object  froq\session\SessionHandlerInterface
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   1.0
  */
 interface SessionHandlerInterface extends \SessionHandlerInterface
 {}

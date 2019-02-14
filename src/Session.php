@@ -24,22 +24,22 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Session;
+namespace froq\session;
 
-use Froq\Util\Traits\SingletonTrait;
+use froq\util\traits\SingletonTrait;
 
 /**
- * @package    Froq
- * @subpackage Froq\Session
- * @object     Froq\Session\Session
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      1.0
+ * Session.
+ * @package froq\session
+ * @object  froq\session\Session
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   1.0
  */
 final class Session
 {
     /**
      * Singleton trait.
-     * @var Froq\Util\Traits\SingletonTrait
+     * @var froq\util\traits\SingletonTrait
      */
     use SingletonTrait;
 
@@ -94,7 +94,7 @@ final class Session
 
     /**
      * Save handler.
-     * @var ?Froq\Session\SessionHandlerInterface
+     * @var ?froq\session\SessionHandlerInterface
      */
     private $saveHandler;
 
@@ -125,7 +125,7 @@ final class Session
     /**
      * Constructor.
      * @param  array|null $options
-     * @throws Froq\Session\SessionException
+     * @throws froq\session\SessionException
      */
     private function __construct(array $options = null)
     {
@@ -177,7 +177,7 @@ final class Session
 
             $this->saveHandler = new $saveHandler($this);
             if (!$this->saveHandler instanceof SessionHandlerInterface) {
-                throw new SessionException("Handler must implement 'Froq\Session\SessionHandlerInterface' object");
+                throw new SessionException("Handler must implement 'froq\session\SessionHandlerInterface' object");
             }
 
             // call init methods if exists
@@ -275,7 +275,7 @@ final class Session
 
     /**
      * Get save handler.
-     * @return ?Froq\Session\SessionHandlerInterface
+     * @return ?froq\session\SessionHandlerInterface
      */
     public function getSaveHandler(): ?SessionHandlerInterface
     {
@@ -321,7 +321,7 @@ final class Session
     /**
      * Start.
      * @return bool
-     * @throws Froq\Session\SessionException
+     * @throws froq\session\SessionException
      */
     public function start(): bool
     {
@@ -445,7 +445,7 @@ final class Session
     /**
      * Generate id.
      * @return string
-     * @throws Froq\Session\SessionException
+     * @throws froq\session\SessionException
      */
     public function generateId(): string
     {

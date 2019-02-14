@@ -24,14 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Session;
+namespace froq\session;
 
 /**
- * @package    Froq
- * @subpackage Froq\Session
- * @object     Froq\Session\SessionException
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      1.0
+ * Session exception.
+ * @package froq\session
+ * @object  froq\session\SessionException
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   1.0
  */
 final class SessionException extends \Exception
 {}

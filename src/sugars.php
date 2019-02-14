@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 /**
  * Session.
- * @return Froq\Session\Session
+ * @return froq\session\Session
  */
 function session()
 {
@@ -57,43 +57,43 @@ function session_array(): array
 }
 
 /**
- * Has session value.
+ * Session has.
  * @param  string $key
  * @return bool
  */
-function has_session_value(string $key): bool
+function session_has(string $key): bool
 {
     return session()->has($key);
 }
 
 /**
- * Set session value.
+ * Session set.
  * @param  string|array $key
  * @param  any          $value
  * @return void
  */
-function set_session_value($key, $value = null): void
+function session_set($key, $value = null): void
 {
     session()->set($key, $value);
 }
 
 /**
- * Get session value.
+ * Session get.
  * @param  string|array $key
  * @param  any          $value
  * @return any
  */
-function get_session_value($key, $value_default = null)
+function session_get($key, $value_default = null)
 {
     return session()->get($key, $value_default);
 }
 
 /**
- * Remove session value.
+ * Session remove.
  * @param  string|array $key
  * @return void
  */
-function remove_session_value($key): void
+function session_remove($key): void
 {
     session()->remove($key);
 }

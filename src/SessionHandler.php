@@ -24,26 +24,26 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Session;
+namespace froq\session;
 
 /**
- * @package    Froq
- * @subpackage Froq\Session
- * @object     Froq\Session\SessionHandler
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      1.0
+ * Session handler.
+ * @package froq\session
+ * @object  froq\session\SessionHandler
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   1.0
  */
 abstract class SessionHandler implements SessionHandlerInterface
 {
     /**
      * Session.
-     * @var Froq\Session\Session
+     * @var froq\session\Session
      */
     protected $session;
 
     /**
      * Constructor.
-     * @param Froq\Session\Session $session
+     * @param froq\session\Session $session
      */
     public final function __construct(Session $session)
     {
@@ -52,7 +52,7 @@ abstract class SessionHandler implements SessionHandlerInterface
 
     /**
      * Get session.
-     * @return Froq\Session\Session
+     * @return froq\session\Session
      */
     public final function getSession(): Session
     {
