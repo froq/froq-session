@@ -44,37 +44,37 @@ function session()
  */
 function session_flash($message = null)
 {
-    return session()->flash($message);
+    return ($session = session()) ? $session->flash($message) : null;
 }
 
 /**
  * Session array.
- * @return array
+ * @return ?array
  */
-function session_array(): array
+function session_array(): ?array
 {
-    return session()->toArray();
+    return ($session = session()) ? $session->toArray() : null;
 }
 
 /**
  * Session has.
  * @param  string $key
- * @return bool
+ * @return ?bool
  */
-function session_has(string $key): bool
+function session_has(string $key): ?bool
 {
-    return session()->has($key);
+    return ($session = session()) ? $session->has($key) : null;
 }
 
 /**
  * Session set.
  * @param  string|array $key
  * @param  any          $value
- * @return void
+ * @return ?bool
  */
-function session_set($key, $value = null): void
+function session_set($key, $value = null): ?bool
 {
-    session()->set($key, $value);
+    return ($session = session()) ? !!$session->set($key, $value) : null;
 }
 
 /**
@@ -85,7 +85,7 @@ function session_set($key, $value = null): void
  */
 function session_get($key, $value_default = null)
 {
-    return session()->get($key, $value_default);
+    return ($session = session()) ? $session->get($key, $value_default) : $value_default;
 }
 
 /**
@@ -95,23 +95,23 @@ function session_get($key, $value_default = null)
  */
 function session_remove($key): void
 {
-    session()->remove($key);
+    ($session = session()) && $session->remove($key);
 }
 
 /**
  * Start session.
- * @return bool
+ * @return ?bool
  */
-function start_session(): bool
+function start_session(): ?bool
 {
-    return session()->start();
+    return ($session = session()) ? $session->start() : null;
 }
 
 /**
  * End session.
- * @return bool
+ * @return ?bool
  */
-function end_session(): bool
+function end_session(): ?bool
 {
-    return session()->end();
+    return ($session = session()) ? $session->end() : null;
 }
