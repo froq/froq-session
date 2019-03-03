@@ -212,7 +212,6 @@ final class Session
             $id = session_id();
             $idUpdate = false;
             $name = $options['name'] ?: self::NAME; // @default
-            // $name = '_sid'; // @default
 
             if ($this->isValidId($id)) { // never happens, but obsession..
                 // ok
