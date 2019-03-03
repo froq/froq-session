@@ -71,8 +71,8 @@ final class Session
      * Sid defaults.
      * @const string
      */
-    public const SID_LENGTH = '26',
-                 SID_BITSPERCHARACTER = '5';
+    public const SID_LENGTH = 26,
+                 SID_BITSPERCHARACTER = 5;
 
     /**
      * Id.
@@ -111,16 +111,16 @@ final class Session
     private $cookieOptions;
 
     /**
-     * Is started.
+     * Started.
      * @var bool
      */
-    private $isStarted = false;
+    private $started = false;
 
     /**
-     * Is ended.
+     * Ended.
      * @var bool
      */
-    private $isEnded = false;
+    private $ended = false;
 
     /**
      * Constructor.
@@ -145,7 +145,7 @@ final class Session
             $this->savePath = $options['savePath'];
             // check/make if option provided
             if (!is_dir($this->savePath)) {
-                $ok = @mkdir($this->savePath, 0750, true);
+                $ok =@ mkdir($this->savePath, 0750, true);
                 if (!$ok) {
                     throw new SessionException(sprintf('Cannot make directory, error[%s]',
                         error_get_last()['message'] ?? 'Unknown'));
@@ -202,7 +202,7 @@ final class Session
         $this->cookieOptions = $cookieOptions;
 
         // start
-        if (!$this->isStarted || session_status() !== PHP_SESSION_ACTIVE) {
+        if (!$this->started || session_status() !== PHP_SESSION_ACTIVE) {
             // set cookie defaults
             session_set_cookie_params($cookieOptions['lifetime'], $cookieOptions['path'],
                 $cookieOptions['domain'], $cookieOptions['secure'], $cookieOptions['httponly']);
@@ -211,7 +211,8 @@ final class Session
             // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
             $id = session_id();
             $idUpdate = false;
-            $name = $options['name'] ?? self::NAME; // @default
+            $name = $options['name'] ?: self::NAME; // @default
+            // $name = '_sid'; // @default
 
             if ($this->isValidId($id)) { // never happens, but obsession..
                 // ok
@@ -306,7 +307,7 @@ final class Session
      */
     public function isStarted(): bool
     {
-        return $this->isStarted;
+        return $this->started;
     }
 
     /**
@@ -315,7 +316,7 @@ final class Session
      */
     public function isEnded(): bool
     {
-        return $this->isEnded;
+        return $this->ended;
     }
 
     /**
@@ -325,7 +326,7 @@ final class Session
      */
     public function start(): bool
     {
-        if (!$this->isStarted) {
+        if (!$this->started) {
             // check headers
             if (headers_sent($file, $line)) {
                 throw new SessionException(sprintf("Cannot use '%s()', headers already sent in %s:%s",
@@ -333,8 +334,8 @@ final class Session
             }
 
             // start session
-            $this->isStarted = session_start();
-            if (!$this->isStarted) {
+            $this->started = session_start();
+            if (!$this->started) {
                 session_write_close();
                 throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
             }
@@ -351,7 +352,7 @@ final class Session
             }
         }
 
-        return $this->isStarted;
+        return $this->started;
     }
 
     /**
@@ -361,10 +362,10 @@ final class Session
      */
     public function end(bool $deleteCookie = true): bool
     {
-        if (!$this->isEnded) {
+        if (!$this->ended) {
             $this->id = '';
-            $this->isEnded = session_destroy();
-            if ($this->isEnded) {
+            $this->ended = session_destroy();
+            if ($this->ended) {
                 $this->reset();
             }
 
@@ -376,7 +377,7 @@ final class Session
             }
         }
 
-        return $this->isEnded;
+        return $this->ended;
     }
 
     /**
@@ -405,15 +406,15 @@ final class Session
                 $idLength = ini_get('session.sid_length') ?: self::SID_LENGTH;
                 $idBitsPerCharacter = ini_get('session.sid_bits_per_character');
                 if ($idBitsPerCharacter == '') { // never happens, but obsession..
-                    ini_set('session.sid_length', self::SID_LENGTH);
-                    ini_set('session.sid_bits_per_character', ($idBitsPerCharacter = self::SID_BITSPERCHARACTER));
+                    ini_set('session.sid_length', (string) self::SID_LENGTH);
+                    ini_set('session.sid_bits_per_character', (string) ($idBitsPerCharacter = self::SID_BITSPERCHARACTER));
                 }
 
                 $idCharacters = '';
-                switch ($idBitsPerCharacter) {
-                    case '4': $idCharacters = '0-9a-f'; break;
-                    case '5': $idCharacters = '0-9a-v'; break;
-                    case '6': $idCharacters = '0-9a-zA-Z-,'; break;
+                switch ((int) $idBitsPerCharacter) {
+                    case 4: $idCharacters = '0-9a-f'; break;
+                    case 5: $idCharacters = '0-9a-v'; break;
+                    case 6: $idCharacters = '0-9a-zA-Z-,'; break;
                 }
 
                 $idPattern = '~^['. $idCharacters .']{'. $idLength .'}$~';
@@ -449,6 +450,10 @@ final class Session
      */
     public function generateId(): string
     {
+        if ($this->saveHandler != null && method_exists($this->saveHandler, 'generateId')) {
+            return $this->saveHandler->generateId($id);
+        }
+
         $id = session_create_id();
 
         // hash by length

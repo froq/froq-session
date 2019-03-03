@@ -59,11 +59,12 @@ abstract class SessionHandler implements SessionHandlerInterface
         return $this->session;
     }
 
-    // Note: If isValidId or/and isValidSource method(s) defined in child class
-    // of this object then these methods will be used in Froq! Session object.
-    // That could be useful when writing session data into a database or anywhere
-    // instead default session files.
+    // Note: If any following method defined in child class of this object then these
+    // methods will be used in Froq! Session object. That could be useful when writing
+    // session data into a database or anywhere instead default session files, or to
+    // generate self-defined session ids.
 
     // public abstract function isValidId(string $id): bool { /* validate id */ }
     // public abstract function isValidSource(string $id): bool { /* validate source by id */ }
+    // public abstract function generateId(): string { /* generate id */ }
 }
