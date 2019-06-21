@@ -26,14 +26,24 @@ declare(strict_types=1);
 
 /**
  * Session.
- * @return froq\session\Session
+ * @param string|array|null $key
+ * @param any               $value
+ * @return froq\session\Session|any
  */
-function session()
+function session($key = null, $value = null)
 {
-    static $session;
-    if ($session == null) {
+    static $session; if ($session == null) {
         $session = app()->service()->getSession();
     }
+
+    // set/get
+    if ($key && $session) {
+        if (is_null($value)) {
+            return $session->get($key);
+        }
+        $session->set($key, $value);
+    }
+
     return $session;
 }
 
