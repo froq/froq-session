@@ -26,6 +26,7 @@ declare(strict_types=1);
 
 namespace froq\session;
 
+use froq\util\Arrays;
 use froq\util\traits\SingletonTrait;
 
 /**
@@ -510,17 +511,7 @@ final class Session
      */
     public function get($key, $valueDefault = null)
     {
-        if (is_array($key)) {
-            $values = [];
-            foreach ($key as $key) {
-                $values[$key] = array_key_exists($key, $_SESSION[$this->name])
-                    ? $_SESSION[$this->name][$key] : $valueDefault;
-            }
-            return $values;
-        }
-
-        return array_key_exists($key, $_SESSION[$this->name])
-            ? $_SESSION[$this->name][$key] : $valueDefault;
+        return Arrays::get($_SESSION[$this->name], $key, $valueDefault);
     }
 
     /**
