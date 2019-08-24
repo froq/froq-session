@@ -37,11 +37,10 @@ function session($key = null, $value = null)
     }
 
     // set/get
-    if ($key && $session) {
-        if (is_null($value)) {
-            return $session->get($key);
-        }
-        $session->set($key, $value);
+    if ($session && $key) {
+        return ($value === null)
+            ? $session->get($key)
+            : $session->set($key, $value);
     }
 
     return $session;
