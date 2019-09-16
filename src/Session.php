@@ -486,7 +486,7 @@ final class Session
     /**
      * Set.
      * @param  string|array $key
-     * @param  any          $value
+     * @param  any|null     $value
      * @return self
      */
     public function set($key, $value = null): self
@@ -506,7 +506,7 @@ final class Session
     /**
      * Get.
      * @param  string|array $key
-     * @param  any          $valueDefault
+     * @param  any|null     $valueDefault
      * @return any
      */
     public function get($key, $valueDefault = null)
@@ -528,7 +528,7 @@ final class Session
 
     /**
      * Flash.
-     * @param  any $message
+     * @param  any|null $message
      * @return any
      */
     public function flash($message = null)

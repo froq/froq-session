@@ -37,7 +37,7 @@ function session($key = null, $value = null)
     }
 
     // set/get
-    if ($session && $key) {
+    if ($session != null && $key !== null) {
         return ($value === null)
             ? $session->get($key)
             : $session->set($key, $value);
@@ -48,12 +48,16 @@ function session($key = null, $value = null)
 
 /**
  * Session flash.
- * @param  any $message
+ * @param  any|null $message
  * @return any
  */
 function session_flash($message = null)
 {
-    return ($session = session()) ? $session->flash($message) : null;
+    $session = session();
+    if ($session != null) {
+        return $session->flash($message);
+    }
+    return null;
 }
 
 /**
@@ -62,7 +66,11 @@ function session_flash($message = null)
  */
 function session_array(): ?array
 {
-    return ($session = session()) ? $session->toArray() : null;
+    $session = session();
+    if ($session != null) {
+        return $session->toArray();
+    }
+    return null;
 }
 
 /**
@@ -72,29 +80,42 @@ function session_array(): ?array
  */
 function session_has(string $key): ?bool
 {
-    return ($session = session()) ? $session->has($key) : null;
+    $session = session();
+    if ($session != null) {
+        return $session->has($key);
+    }
+    return null;
 }
 
 /**
  * Session set.
  * @param  string|array $key
- * @param  any          $value
+ * @param  any|null     $value
  * @return ?bool
  */
 function session_set($key, $value = null): ?bool
 {
-    return ($session = session()) ? !!$session->set($key, $value) : null;
+    $session = session();
+    if ($session != null) {
+        $session->set($key, $value);
+        return true;
+    }
+    return null;
 }
 
 /**
  * Session get.
  * @param  string|array $key
- * @param  any          $value
- * @return any
+ * @param  any|null     $value
+ * @return ?any
  */
 function session_get($key, $value_default = null)
 {
-    return ($session = session()) ? $session->get($key, $value_default) : $value_default;
+    $session = session();
+    if ($session != null) {
+        return $session->get($key, $value_default);
+    }
+    return null;
 }
 
 /**
@@ -104,7 +125,10 @@ function session_get($key, $value_default = null)
  */
 function session_remove($key): void
 {
-    ($session = session()) && $session->remove($key);
+    $session = session();
+    if ($session != null) {
+        $session->remove($key);
+    }
 }
 
 /**
