@@ -107,13 +107,14 @@ function session_set($key, $value = null): ?bool
  * Session get.
  * @param  string|array $key
  * @param  any|null     $value
+ * @param  bool         $remove
  * @return ?any
  */
-function session_get($key, $value_default = null)
+function session_get($key, $value_default = null, bool $remove = false)
 {
     $session = session();
     if ($session != null) {
-        return $session->get($key, $value_default);
+        return $session->get($key, $value_default, $remove);
     }
     return null;
 }

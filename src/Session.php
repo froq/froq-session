@@ -507,11 +507,16 @@ final class Session
      * Get.
      * @param  string|array $key
      * @param  any|null     $valueDefault
+     * @param  bool         $remove
      * @return any
      */
-    public function get($key, $valueDefault = null)
+    public function get($key, $valueDefault = null, bool $remove = false)
     {
-        return Arrays::get($_SESSION[$this->name], $key, $valueDefault);
+        $ret = Arrays::get($_SESSION[$this->name], $key, $valueDefault);
+        if ($remove && $ret !== null) {
+            $this->remove($key);
+        }
+        return $ret;
     }
 
     /**
