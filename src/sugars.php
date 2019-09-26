@@ -33,7 +33,7 @@ declare(strict_types=1);
 function session($key = null, $value = null)
 {
     static $session; if ($session == null) {
-        $session = app()->service()->getSession();
+        $session = app()->session();
     }
 
     // set/get
@@ -148,4 +148,13 @@ function start_session(): ?bool
 function end_session(): ?bool
 {
     return ($session = session()) ? $session->end() : null;
+}
+
+/**
+ * Reset session.
+ * @return ?bool
+ */
+function reset_session(): ?bool
+{
+    return ($session = session()) ? $session->reset() : null;
 }

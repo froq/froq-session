@@ -9,6 +9,7 @@
     ],
     "require": {
         "php": "^7.2",
+        "froq/froq-app": "^3.0",
         "froq/froq-util": "^3.0"
     },
     "autoload": {
