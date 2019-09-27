@@ -34,6 +34,9 @@ function session($key = null, $value = null)
 {
     static $session; if ($session == null) {
         $session = app()->session();
+        if ($session) {
+            $session->start();
+        }
     }
 
     // set/get
