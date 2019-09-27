@@ -26,7 +26,6 @@ declare(strict_types=1);
 
 namespace froq\session;
 
-use froq\App;
 use froq\util\Arrays;
 
 /**
@@ -100,10 +99,10 @@ final class Session
      * @param  array|null $options
      * @throws froq\session\SessionException
      */
-    public function __construct(App $app)
+    public function __construct(array $options = null)
     {
-        $this->options = array_merge($this->optionsDefault, (array) $app->config('session'));
-        $this->options['cookie'] = array_merge($this->optionsDefault['cookie'], (array) $app->config('session.cookie'));
+        $this->options = array_merge($this->optionsDefault, (array) ($options ?? []));
+        $this->options['cookie'] = array_merge($this->optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
 
         // save path
         if ($this->options['savePath'] != null) {
