@@ -57,7 +57,7 @@ final class Session
 
     /**
      * Save handler.
-     * @var ?froq\session\SessionHandlerInterface
+     * @var ?object
      */
     private $saveHandler;
 
@@ -69,11 +69,11 @@ final class Session
 
     /**
      * Options default.
-     * @var array;
+     * @var array
      */
-    private $optionsDefault = [
+    private static $optionsDefault = [
         'name'     => 'SID',
-        'hash'     => true, 'hashLength' => 40, // ID length (32, 40, 64, 128)
+        'hash'     => true, 'hashLength' => 32, // ID length (32, 40, 64, 128)
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
             'lifetime' => 0,     'path' => '/',
@@ -101,8 +101,8 @@ final class Session
      */
     public function __construct(array $options = null)
     {
-        $this->options = array_merge($this->optionsDefault, (array) ($options ?? []));
-        $this->options['cookie'] = array_merge($this->optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
+        $this->options = array_merge(self::$optionsDefault, (array) ($options ?? []));
+        $this->options['cookie'] = array_merge(self::$optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
 
         // save path
         if ($this->options['savePath'] != null) {
@@ -114,10 +114,9 @@ final class Session
                         error_get_last()['message'] ?? 'Unknown'));
                 }
             }
-        } else {
-            $this->savePath = session_save_path();
+
+            session_save_path($this->savePath);
         }
-        session_save_path($this->savePath);
 
         // save handler
         if ($this->options['saveHandler'] != null) {
@@ -130,20 +129,18 @@ final class Session
                 if (!file_exists($saveHandlerFile)) {
                     throw new SessionException("Could not find given handler file '{$saveHandlerFile}'");
                 }
-
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler, true)) {
                 throw new SessionException("Handler class '{$saveHandler}' not found");
             }
-
-            $this->saveHandler = new $saveHandler($this);
-            if (!$this->saveHandler instanceof SessionHandlerInterface) {
-                throw new SessionException("Handler must implement 'froq\session\SessionHandlerInterface' object");
+            if (!is_subclass_of($saveHandler, 'froq\\session\\SessionHandler', true)) {
+                throw new SessionException("Handler class must extend 'froq\\session\\SessionHandler' object");
             }
 
-            // call init methods if exists
+            // init handler & call init method if exists ('cos handler constructor is final)
+            $this->saveHandler = new $saveHandler($this);
             if (method_exists($this->saveHandler, 'init')) {
                 $this->saveHandler->init();
             }
@@ -154,11 +151,11 @@ final class Session
         // set cookie defaults
         $cookieParams = $this->options['cookie'] ?? session_get_cookie_params();
         session_set_cookie_params(
-            $cookieParams['lifetime'] ?? $this->optionsDefault['lifetime'],
-            $cookieParams['path'] ?? $this->optionsDefault['path'],
-            $cookieParams['domain'] ?? $this->optionsDefault['domain'],
-            $cookieParams['secure'] ?? $this->optionsDefault['secure'],
-            $cookieParams['httponly'] ?? $this->optionsDefault['httponly']
+            $cookieParams['lifetime'] ?? self::$optionsDefault['lifetime'],
+            $cookieParams['path'] ?? self::$optionsDefault['path'],
+            $cookieParams['domain'] ?? self::$optionsDefault['domain'],
+            $cookieParams['secure'] ?? self::$optionsDefault['secure'],
+            $cookieParams['httponly'] ?? self::$optionsDefault['httponly']
         );
     }
 
@@ -200,9 +197,9 @@ final class Session
 
     /**
      * Get save handler.
-     * @return ?froq\session\SessionHandlerInterface
+     * @return ?object
      */
-    public function getSaveHandler(): ?SessionHandlerInterface
+    public function getSaveHandler(): ?object
     {
         return $this->saveHandler;
     }
@@ -242,9 +239,8 @@ final class Session
     public function start(): bool
     {
         if (!$this->started || session_status() !== PHP_SESSION_ACTIVE) {
-            // @note If id is specified, it will replace the current session id. session_id() needs to be called
-            // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
-            $id = session_id(); $idUpdate = false;
+            $id = session_id();
+            $idUpdate = false;
             $name = $this->options['name'];
 
             if ($this->isValidId($id)) { // never happens, but obsession..
@@ -262,24 +258,23 @@ final class Session
             $this->id = $id;
             $this->name = $name;
             if ($idUpdate) {
+                // @note If id is specified, it will replace the current session id. session_id() needs to be called
+                // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
                 session_id($id);
             }
             session_name($name);
 
-            // check headers
             if (headers_sent($file, $line)) {
                 throw new SessionException(sprintf("Cannot use '%s()', headers already sent in %s:%s",
                     __method__, $file, $line));
             }
 
-            // start session
             $this->started = session_start();
             if (!$this->started) {
                 session_write_close();
                 throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
             }
 
-            // check id for last time
             if (session_id() !== $this->id) {
                 session_write_close();
                 throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
@@ -287,7 +282,7 @@ final class Session
 
             // init sub-array
             if (!isset($_SESSION[$this->name])) {
-                $_SESSION[$this->name] = [];
+                $_SESSION[$this->name] = ['@' => $id];
             }
         }
 
@@ -333,8 +328,7 @@ final class Session
             return $this->saveHandler->isValidId($id);
         }
 
-        static $idPattern;
-        if ($idPattern == null) {
+        static $idPattern; if ($idPattern == null) {
             if ($this->options['hash']) {
                 $idPattern = '~^[A-F0-9]{'. $this->options['hashLength'] .'}$~';
             } else {
@@ -378,8 +372,8 @@ final class Session
             return $this->saveHandler->isValidSource($id);
         }
 
-        // for 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return file_exists($this->savePath .'/sess_'. $id);
+        // @see: 'sess_' => https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
+        return file_exists(($this->savePath ?? session_save_path()) .'/sess_'. $id);
     }
 
     /**
@@ -390,7 +384,7 @@ final class Session
     public function generateId(): string
     {
         if ($this->saveHandler != null && method_exists($this->saveHandler, 'generateId')) {
-            return $this->saveHandler->generateId($id);
+            return $this->saveHandler->generateId();
         }
 
         $id = session_create_id();
@@ -465,7 +459,8 @@ final class Session
      */
     public function remove($key): void
     {
-        foreach ((array) $key as $key) {
+        $keys = (array) $key;
+        foreach ($keys as $key) {
             unset($_SESSION[$this->name][$key]);
         }
     }
@@ -507,6 +502,6 @@ final class Session
      */
     public function reset(): void
     {
-        $_SESSION[$this->name] = [];
+        unset($_SESSION[$this->name]);
     }
 }

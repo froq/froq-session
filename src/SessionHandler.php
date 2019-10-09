@@ -33,7 +33,7 @@ namespace froq\session;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   1.0
  */
-abstract class SessionHandler implements SessionHandlerInterface
+abstract class SessionHandler implements \SessionHandlerInterface
 {
     /**
      * Session.
@@ -62,9 +62,10 @@ abstract class SessionHandler implements SessionHandlerInterface
     // Note: If any following method defined in child class of this object then these
     // methods will be used in Froq! Session object. That could be useful when writing
     // session data into a database or anywhere instead default session files, or to
-    // generate self-defined session ids.
+    // generate self-defined session ids. Remember all following id-related methods must
+    // be defined in child class.
 
-    // public abstract function isValidId(string $id): bool { /* validate id */ }
-    // public abstract function isValidSource(string $id): bool { /* validate source by id */ }
-    // public abstract function generateId(): string { /* generate id */ }
+    // public function isValidId(string $id): bool { /* validate id */ }
+    // public function isValidSource(string $id): bool { /* validate source by id */ }
+    // public function generateId(): string { /* generate id */ }
 }
