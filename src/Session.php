@@ -104,23 +104,22 @@ final class Session
         $this->options = array_merge(self::$optionsDefault, (array) ($options ?? []));
         $this->options['cookie'] = array_merge(self::$optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
 
-        // save path
-        if ($this->options['savePath'] != null) {
-            $this->savePath = $this->options['savePath'];
-            if (!is_dir($this->savePath)) {
-                $ok =@ mkdir($this->savePath, 0750, true);
+        $savePath = $this->options['savePath'];
+        if ($savePath != null) {
+            if (!is_dir($savePath)) {
+                $ok =@ mkdir($savePath, 0750, true);
                 if (!$ok) {
                     throw new SessionException(sprintf('Cannot make directory, error[%s]',
                         error_get_last()['message'] ?? 'Unknown'));
                 }
             }
+            session_save_path($savePath);
 
-            session_save_path($this->savePath);
+            $this->savePath = $savePath;
         }
 
-        // save handler
-        if ($this->options['saveHandler'] != null) {
-            $saveHandler = $this->options['saveHandler'];
+        $saveHandler = $this->options['saveHandler'];
+        if ($saveHandler != null) {
             if (is_array($saveHandler)) { // file given
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if (!isset($saveHandler, $saveHandlerFile)) {
@@ -140,12 +139,13 @@ final class Session
             }
 
             // init handler & call init method if exists ('cos handler constructor is final)
-            $this->saveHandler = new $saveHandler($this);
-            if (method_exists($this->saveHandler, 'init')) {
-                $this->saveHandler->init();
+            $saveHandler = new $saveHandler($this);
+            if (method_exists($saveHandler, 'init')) {
+                $saveHandler->init();
             }
+            session_set_save_handler($saveHandler, true);
 
-            session_set_save_handler($this->saveHandler, true);
+            $this->saveHandler = $saveHandler;
         }
 
         // set cookie defaults
@@ -214,6 +214,16 @@ final class Session
     }
 
     /**
+     * Get option.
+     * @param  string $key
+     * @return any|null
+     */
+    public function getOption(string $key)
+    {
+        return $this->options[$key] ?? null;
+    }
+
+    /**
      * Is started.
      * @return bool
      */
@@ -260,9 +270,9 @@ final class Session
             if ($idUpdate) {
                 // @note If id is specified, it will replace the current session id. session_id() needs to be called
                 // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
-                session_id($id);
+                session_id($this->id);
             }
-            session_name($name);
+            session_name($this->name);
 
             if (headers_sent($file, $line)) {
                 throw new SessionException(sprintf("Cannot use '%s()', headers already sent in %s:%s",
@@ -282,7 +292,7 @@ final class Session
 
             // init sub-array
             if (!isset($_SESSION[$this->name])) {
-                $_SESSION[$this->name] = ['@' => $id];
+                $_SESSION[$this->name] = ['@' => $this->id];
             }
         }
 
