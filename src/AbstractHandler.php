@@ -51,6 +51,10 @@ abstract class AbstractHandler implements SessionHandlerInterface
     public final function __construct(Session $session)
     {
         $this->session = $session;
+
+        if (method_exists($this, 'init')) {
+            $this->init();
+        }
     }
 
     /**
