@@ -26,12 +26,14 @@ declare(strict_types=1);
 
 namespace froq\session;
 
+use froq\Exception;
+
 /**
- * Session exception.
+ * Session Exception.
  * @package froq\session
  * @object  froq\session\SessionException
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   1.0
  */
-final class SessionException extends \Exception
+final class SessionException extends Exception
 {}
