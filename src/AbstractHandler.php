@@ -26,20 +26,23 @@ declare(strict_types=1);
 
 namespace froq\session;
 
+use froq\session\Session;
+use SessionHandlerInterface;
+
 /**
- * Session handler.
+ * Abstract Handler.
  * @package froq\session
- * @object  froq\session\SessionHandler
+ * @object  froq\session\AbstractHandler
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   1.0
  */
-abstract class SessionHandler implements \SessionHandlerInterface
+abstract class AbstractHandler implements SessionHandlerInterface
 {
     /**
      * Session.
      * @var froq\session\Session
      */
-    protected $session;
+    protected Session $session;
 
     /**
      * Constructor.
