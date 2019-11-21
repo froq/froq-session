@@ -26,7 +26,8 @@ declare(strict_types=1);
 
 namespace froq\session;
 
-use froq\util\Arrays;
+use froq\session\{SessionException, AbstractHandler};
+use froq\{Arrays, traits\OptionTrait, interfaces\Arrayable};
 
 /**
  * Session.
@@ -35,64 +36,65 @@ use froq\util\Arrays;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   1.0
  */
-final class Session
+final class Session implements Arrayable
 {
     /**
-     * Id.
-     * @var string
+     * Option trait.
+     * @object froq\traits\OptionTrait
+     * @since  4.0
      */
-    private $id;
+    use OptionTrait;
+
+    /**
+     * Id.
+     * @var ?string
+     */
+    private ?string $id;
 
     /**
      * name.
-     * @var string
+     * @var ?string
      */
-    private $name;
+    private ?string $name;
 
     /**
      * Save path.
-     * @var string
+     * @var ?string
      */
-    private $savePath;
+    private ?string $savePath;
 
     /**
      * Save handler.
      * @var ?object
      */
-    private $saveHandler;
+    private ?object $saveHandler;
 
     /**
-     * Options.
-     * @var array
+     * Started.
+     * @var ?bool
      */
-    private $options = [];
+    private ?bool $started;
+
+    /**
+     * Ended.
+     * @var ?bool
+     */
+    private ?bool $ended;
 
     /**
      * Options default.
      * @var array
      */
-    private static $optionsDefault = [
+    private static array $optionsDefault = [
         'name'     => 'SID',
-        'hash'     => true, 'hashLength' => 32, // ID length (32, 40, 64, 128)
+        'hash'     => true, 'hashLength' => 32, // ID length (32, 40)
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
             'lifetime' => 0,     'path' => '/',
             'domain'   => '',    'secure' => false,
-            'httponly' => false, /* 'samesite' => '', // PHP/7.3 */
+            'httponly' => false, 'samesite' => '',
         ]
     ];
-
-    /**
-     * Started.
-     * @var bool
-     */
-    private $started = false;
-
-    /**
-     * Ended.
-     * @var bool
-     */
-    private $ended = false;
 
     /**
      * Constructor.
@@ -101,16 +103,17 @@ final class Session
      */
     public function __construct(array $options = null)
     {
-        $this->options = array_merge(self::$optionsDefault, (array) ($options ?? []));
-        $this->options['cookie'] = array_merge(self::$optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
+        $options = array_merge(self::$optionsDefault, (array) ($options ?? []));
+        $options['cookie'] = array_merge(self::$optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
 
-        $savePath = $this->options['savePath'];
+        $this->setOptions($options);
+
+        $savePath = $options['savePath'];
         if ($savePath != null) {
             if (!is_dir($savePath)) {
-                $ok =@ mkdir($savePath, 0750, true);
+                $ok =@ mkdir($savePath, 0644, true);
                 if (!$ok) {
-                    throw new SessionException(sprintf('Cannot make directory, error[%s]',
-                        error_get_last()['message'] ?? 'Unknown'));
+                    throw new SessionException(sprintf('Cannot make directory, error[%s]', error()));
                 }
             }
             session_save_path($savePath);
@@ -118,50 +121,42 @@ final class Session
             $this->savePath = $savePath;
         }
 
-        $saveHandler = $this->options['saveHandler'];
+        $saveHandler = $options['saveHandler'];
         if ($saveHandler != null) {
-            if (is_array($saveHandler)) { // file given
+            if (is_array($saveHandler)) { // File given?
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
-                if (!isset($saveHandler, $saveHandlerFile)) {
-                    throw new SessionException("Both handler and handler file are required");
+                if ($saveHandler == null || $saveHandlerFile == null) {
+                    throw new SessionException('Both handler and handler file are required');
                 }
                 if (!file_exists($saveHandlerFile)) {
-                    throw new SessionException("Could not find given handler file '{$saveHandlerFile}'");
+                    throw new SessionException(sprintf("Could not find given handler file '%s'",
+                        $saveHandlerFile));
                 }
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler, true)) {
-                throw new SessionException("Handler class '{$saveHandler}' not found");
+                throw new SessionException(sprintf("Handler class '%s' not found", $saveHandler));
             }
-            if (!is_subclass_of($saveHandler, 'froq\\session\\SessionHandler', true)) {
-                throw new SessionException("Handler class must extend 'froq\\session\\SessionHandler' object");
+            if (!is_subclass_of($saveHandler, AbstractHandler::class, true)) {
+                throw new SessionException(sprintf("Handler class must extend '%s' object",
+                    AbstractHandler::class));
             }
 
-            // init handler & call init method if exists ('cos handler constructor is final)
+            // Init handler.
             $saveHandler = new $saveHandler($this);
-            if (method_exists($saveHandler, 'init')) {
-                $saveHandler->init();
-            }
+
             session_set_save_handler($saveHandler, true);
 
             $this->saveHandler = $saveHandler;
         }
 
-        // set cookie defaults
-        $cookieParams = $this->options['cookie'] ?? session_get_cookie_params();
-        session_set_cookie_params(
-            $cookieParams['lifetime'] ?? self::$optionsDefault['lifetime'],
-            $cookieParams['path'] ?? self::$optionsDefault['path'],
-            $cookieParams['domain'] ?? self::$optionsDefault['domain'],
-            $cookieParams['secure'] ?? self::$optionsDefault['secure'],
-            $cookieParams['httponly'] ?? self::$optionsDefault['httponly']
-        );
+        // Set cookie defaults.
+        session_set_cookie_params($options['cookie'] ?? session_get_cookie_params());
     }
 
     /**
      * Destructor.
-     * @return void
      */
     public function __destruct()
     {
@@ -170,29 +165,29 @@ final class Session
 
     /**
      * Get id.
-     * @return string
+     * @return ?string
      */
-    public function getId(): string
+    public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
      * Get name.
-     * @return string
+     * @return ?string
      */
-    public function getName(): string
+    public function getName(): ?string
     {
-        return $this->name;
+        return $this->name ?? null;
     }
 
     /**
      * Get save path.
-     * @return string
+     * @return ?string
      */
-    public function getSavePath(): string
+    public function getSavePath(): ?string
     {
-        return $this->savePath;
+        return $this->savePath ?? null;
     }
 
     /**
@@ -201,44 +196,25 @@ final class Session
      */
     public function getSaveHandler(): ?object
     {
-        return $this->saveHandler;
-    }
-
-    /**
-     * Get options.
-     * @return array
-     */
-    public function getOptions(): array
-    {
-        return $this->options;
-    }
-
-    /**
-     * Get option.
-     * @param  string $key
-     * @return any|null
-     */
-    public function getOption(string $key)
-    {
-        return $this->options[$key] ?? null;
+        return $this->saveHandler ?? null;
     }
 
     /**
      * Is started.
-     * @return bool
+     * @return ?bool
      */
-    public function isStarted(): bool
+    public function isStarted(): ?bool
     {
-        return $this->started;
+        return $this->started ?? null;
     }
 
     /**
      * Is ended.
-     * @return bool
+     * @return ?bool
      */
-    public function isEnded(): bool
+    public function isEnded(): ?bool
     {
-        return $this->ended;
+        return $this->ended ?? null;
     }
 
     /**
@@ -248,15 +224,17 @@ final class Session
      */
     public function start(): bool
     {
-        if (!$this->started || session_status() !== PHP_SESSION_ACTIVE) {
+        $started = $this->isStarted();
+
+        if (!$started || session_status() !== PHP_SESSION_ACTIVE) {
             $id = session_id();
             $idUpdate = false;
             $name = $this->options['name'];
 
-            if ($this->isValidId($id)) { // never happens, but obsession..
-                // ok
+            if ($this->isValidId($id)) {
+                // Pass, never happens, but obsession..
             } else {
-                // hard and hard..
+                // Hard and hard.
                 $id = $_COOKIE[$name] ?? '';
                 if (!$this->isValidId($id) || !$this->isValidSource($id)) {
                     $id = $this->generateId();
@@ -264,7 +242,7 @@ final class Session
                 }
             }
 
-            // set id & name
+            // Set id & name.
             $this->id = $id;
             $this->name = $name;
             if ($idUpdate) {
@@ -275,28 +253,28 @@ final class Session
             session_name($this->name);
 
             if (headers_sent($file, $line)) {
-                throw new SessionException(sprintf("Cannot use '%s()', headers already sent in %s:%s",
+                throw new SessionException(sprintf('Cannot use %s(), headers already sent in %s:%s',
                     __method__, $file, $line));
             }
 
-            $this->started = session_start();
-            if (!$this->started) {
+            $started = session_start();
+            if (!$started) {
                 session_write_close();
-                throw new SessionException(sprintf("Session start failed in '%s()'", __method__));
+                throw new SessionException('Session start failed');
             }
 
             if (session_id() !== $this->id) {
                 session_write_close();
-                throw new SessionException(sprintf("Session ID match failed in '%s()'", __method__));
+                throw new SessionException('Session ID match failed');
             }
 
-            // init sub-array
+            // Init sub-array.
             if (!isset($_SESSION[$this->name])) {
                 $_SESSION[$this->name] = ['@' => $this->id];
             }
         }
 
-        return $this->started;
+        return ($this->started = $started);
     }
 
     /**
@@ -306,21 +284,21 @@ final class Session
      */
     public function end(bool $deleteCookie = true): bool
     {
-        if (!$this->ended) {
-            $this->id = '';
-            $this->ended = session_destroy();
-            if ($this->ended) {
+        $ended = $this->isEnded();
+
+        if (!$ended) {
+            $ended = session_destroy();
+            if ($ended) {
+                $this->id = null;
                 $this->reset();
             }
 
             if ($deleteCookie) {
-                $cookieParams = session_get_cookie_params();
-                setcookie($this->name, '', 0, $cookieParams['path'], $cookieParams['domain'],
-                    $cookieParams['secure'], $cookieParams['httponly']);
+                setcookie($this->name, '', session_get_cookie_params());
             }
         }
 
-        return $this->ended;
+        return ($this->ended = $ended);
     }
 
     /**
@@ -334,8 +312,9 @@ final class Session
             return false;
         }
 
-        if ($this->saveHandler != null && method_exists($this->saveHandler, 'isValidId')) {
-            return $this->saveHandler->isValidId($id);
+        $saveHandler = $this->getSaveHandler();
+        if ($saveHandler != null && method_exists($saveHandler, 'isValidId')) {
+            return $saveHandler->isValidId($id);
         }
 
         static $idPattern; if ($idPattern == null) {
@@ -378,12 +357,13 @@ final class Session
             return false;
         }
 
-        if ($this->saveHandler != null && method_exists($this->saveHandler, 'isValidSource')) {
-            return $this->saveHandler->isValidSource($id);
+        $saveHandler = $this->getSaveHandler();
+        if ($saveHandler != null && method_exists($saveHandler, 'isValidSource')) {
+            return $saveHandler->isValidSource($id);
         }
 
-        // @see: 'sess_' => https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return file_exists(($this->savePath ?? session_save_path()) .'/sess_'. $id);
+        // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
+        return file_exists(($this->getSavePath() ?? session_save_path()) .'/sess_'. $id);
     }
 
     /**
@@ -393,22 +373,21 @@ final class Session
      */
     public function generateId(): string
     {
-        if ($this->saveHandler != null && method_exists($this->saveHandler, 'generateId')) {
-            return $this->saveHandler->generateId();
+        $saveHandler = $this->getSaveHandler();
+        if ($saveHandler != null && method_exists($saveHandler, 'generateId')) {
+            return $saveHandler->generateId();
         }
 
         $id = session_create_id();
 
-        // hash by length
+        // Hash by length.
         if ($this->options['hash']) {
             switch ($this->options['hashLength']) {
                 case 32: $id = hash('md5', $id); break;
                 case 40: $id = hash('sha1', $id); break;
-                case 64: $id = hash('sha256', $id); break;
-                case 128: $id = hash('sha512', $id); break;
                 default:
-                    throw new SessionException("No valid 'hashLength' option given, only ".
-                        "'32,40,64,128' are accepted");
+                    throw new SessionException("No valid 'hashLength' option given, only 32 and 40".
+                        "are accepted");
             }
             $id = strtoupper($id);
         }
@@ -423,7 +402,13 @@ final class Session
      */
     public function has(string $key): bool
     {
-        return array_key_exists($key, $_SESSION[$this->name]);
+        $name = $this->getName();
+
+        if (isset($_SESSION[$name])) {
+            return array_key_exists($key, $_SESSION[$name]);
+        }
+
+        return false;
     }
 
     /**
@@ -431,16 +416,21 @@ final class Session
      * @param  string|array $key
      * @param  any|null     $value
      * @return self
+     * @throws froq\session\SessionException
      */
     public function set($key, $value = null): self
     {
-        if (is_array($key)) {
-            // must be assoc array
-            foreach ($key as $key => $value) {
-                $_SESSION[$this->name][$key] = $value;
+        $name = $this->getName();
+
+        if (isset($_SESSION[$name])) {
+            if (is_array($key)) {
+                // Must be an associative array.
+                foreach ($key as $key => $value) {
+                    $_SESSION[$name][$key] = $value;
+                }
+            } else {
+                $_SESSION[$name][$key] = $value;
             }
-        } else {
-            $_SESSION[$this->name][$key] = $value;
         }
 
         return $this;
@@ -452,14 +442,21 @@ final class Session
      * @param  any|null     $valueDefault
      * @param  bool         $remove
      * @return any
+     * @throws froq\session\SessionException
      */
     public function get($key, $valueDefault = null, bool $remove = false)
     {
-        $ret = Arrays::get($_SESSION[$this->name], $key, $valueDefault);
-        if ($remove && $ret !== null) {
-            $this->remove($key);
+        $name = $this->getName();
+
+        if (isset($_SESSION[$name])) {
+            $value = Arrays::get($_SESSION[$name], $key, $valueDefault);
+            if ($remove) {
+                $this->remove($key);
+            }
+            return $value;
         }
-        return $ret;
+
+        return null;
     }
 
     /**
@@ -469,9 +466,26 @@ final class Session
      */
     public function remove($key): void
     {
-        $keys = (array) $key;
-        foreach ($keys as $key) {
-            unset($_SESSION[$this->name][$key]);
+        $name = $this->getName();
+
+        if (isset($_SESSION[$name])) {
+            $keys = (array) $key;
+            foreach ($keys as $key) {
+                unset($_SESSION[$name][$key]);
+            }
+        }
+    }
+
+    /**
+     * Reset.
+     * @return void
+     */
+    public function reset(): void
+    {
+        $name = $this->getName();
+
+        if (isset($_SESSION[$name])) {
+            unset($_SESSION[$name]);
         }
     }
 
@@ -482,36 +496,27 @@ final class Session
      */
     public function flash($message = null)
     {
-        // set
-        if ($message !== null) {
+        if ($message !== null) { // Set.
             $this->set('@flash', $message);
-        } else { // get
-            $message = $this->get('@flash');
-            $this->remove('@flash');
+        } else {                 // Get.
+            $message = $this->get('@flash', '', true);
             return $message;
         }
     }
 
     /**
-     * To array.
-     * @return array
+     * @inheritDoc froq\interfaces\Arrayable
      */
     public function toArray(): array
     {
-        $array = [];
-        if (isset($_SESSION[$this->name])) {
-            $array = to_array($_SESSION[$this->name], true);
+        $ret = [];
+
+        $name = $this->getName();
+
+        if (isset($_SESSION[$name])) {
+            $ret = to_array($_SESSION[$name], true);
         }
 
-        return $array;
-    }
-
-    /**
-     * Reset.
-     * @return void
-     */
-    public function reset(): void
-    {
-        unset($_SESSION[$this->name]);
+        return $ret;
     }
 }
