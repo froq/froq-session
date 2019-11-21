@@ -1,18 +1,17 @@
 {
     "name": "froq/froq-session",
     "homepage": "https://github.com/froq/froq-session",
-    "description": "Session module for Froq!",
+    "description": "Froq! Session.",
     "keywords": ["froq", "session"],
     "license": "MIT",
     "authors": [
         {"name": "Kerem Güneş", "email": "k-gun@mail.com"}
     ],
     "require": {
-        "php": "^7.2",
-        "froq/froq-util": "^3.0"
+        "php": "^7.4",
+        "froq/froq": "^4.0"
     },
     "autoload": {
-        "classmap": ["src/"],
-           "files": ["src/sugars.php"]
+        "classmap": ["src/"]
     }
 }
