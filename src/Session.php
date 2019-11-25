@@ -47,39 +47,39 @@ final class Session implements Arrayable
 
     /**
      * Id.
-     * @var ?string
+     * @var string
      */
-    private ?string $id;
+    private string $id;
 
     /**
      * name.
-     * @var ?string
+     * @var string
      */
-    private ?string $name;
+    private string $name;
 
     /**
      * Save path.
-     * @var ?string
+     * @var string
      */
-    private ?string $savePath;
+    private string $savePath;
 
     /**
      * Save handler.
-     * @var ?object
+     * @var object
      */
-    private ?object $saveHandler;
+    private object $saveHandler;
 
     /**
      * Started.
-     * @var ?bool
+     * @var bool
      */
-    private ?bool $started;
+    private bool $started;
 
     /**
      * Ended.
-     * @var ?bool
+     * @var bool
      */
-    private ?bool $ended;
+    private bool $ended;
 
     /**
      * Options default.
@@ -245,6 +245,7 @@ final class Session implements Arrayable
             // Set id & name.
             $this->id = $id;
             $this->name = $name;
+
             if ($idUpdate) {
                 // @note If id is specified, it will replace the current session id. session_id() needs to be called
                 // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
@@ -289,12 +290,11 @@ final class Session implements Arrayable
         if (!$ended) {
             $ended = session_destroy();
             if ($ended) {
-                $this->id = null;
                 $this->reset();
             }
 
             if ($deleteCookie) {
-                setcookie($this->name, '', session_get_cookie_params());
+                setcookie($this->getName(), '', session_get_cookie_params());
             }
         }
 
