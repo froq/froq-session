@@ -26,8 +26,9 @@ declare(strict_types=1);
 
 namespace froq\session;
 
+use froq\util\Arrays;
+use froq\{inters\Arrayable, traits\OptionTrait};
 use froq\session\{SessionException, AbstractHandler};
-use froq\{Arrays, traits\OptionTrait, interfaces\Arrayable};
 
 /**
  * Session.
@@ -505,7 +506,7 @@ final class Session implements Arrayable
     }
 
     /**
-     * @inheritDoc froq\interfaces\Arrayable
+     * @inheritDoc froq\inters\Arrayable
      */
     public function toArray(): array
     {
