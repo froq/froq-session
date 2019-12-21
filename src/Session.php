@@ -286,9 +286,10 @@ final class Session implements Arrayable
      */
     public function end(bool $deleteCookie = true): bool
     {
+        $started = $this->isStarted();
         $ended = $this->isEnded();
 
-        if (!$ended) {
+        if ($started && !$ended) {
             $ended = session_destroy();
             if ($ended) {
                 $this->reset();
@@ -325,22 +326,24 @@ final class Session implements Arrayable
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
                 // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
-                $defaultSidLength = '26'; $defaultSidBitsPerCharacter = '5';
-                $idLength = ini_get('session.sid_length') ?: $defaultSidLength;
-                $idBitsPerCharacter = ini_get('session.sid_bits_per_character');
-                if ($idBitsPerCharacter == '') { // never happens, but obsession..
-                    ini_set('session.sid_length', $defaultSidLength);
-                    ini_set('session.sid_bits_per_character', ($idBitsPerCharacter = $defaultSidBitsPerCharacter));
+                $idLenDefault = '26';
+                $idBitsPerCharDefault = '5';
+
+                $idLen = ini_get('session.sid_length') ?: $idLenDefault;
+                $idBitsPerChar = ini_get('session.sid_bits_per_character');
+                if ($idBitsPerChar == '') { // Never happens, but obsession..
+                    ini_set('session.sid_length', $idLenDefault);
+                    ini_set('session.sid_bits_per_character', ($idBitsPerChar = $idBitsPerCharDefault));
                 }
 
-                $idCharacters = '';
-                switch ($idBitsPerCharacter) {
-                    case '4': $idCharacters = '0-9a-f'; break;
-                    case '5': $idCharacters = '0-9a-v'; break;
-                    case '6': $idCharacters = '0-9a-zA-Z-,'; break;
+                $idChars = '';
+                switch ($idBitsPerChar) {
+                    case '4': $idChars = '0-9a-f'; break;
+                    case '5': $idChars = '0-9a-v'; break;
+                    case '6': $idChars = '0-9a-zA-Z-,'; break;
                 }
 
-                $idPattern = '~^['. $idCharacters .']{'. $idLength .'}$~';
+                $idPattern = '~^['. $idChars .']{'. $idLen .'}$~';
             }
         }
 
@@ -387,13 +390,38 @@ final class Session implements Arrayable
                 case 32: $id = hash('md5', $id); break;
                 case 40: $id = hash('sha1', $id); break;
                 default:
-                    throw new SessionException("No valid 'hashLength' option given, only 32 and 40".
-                        "are accepted");
+                    throw new SessionException('No valid "hashLength" option given, only 32 and 40'.
+                        'are accepted');
             }
             $id = strtoupper($id);
         }
 
         return $id;
+    }
+
+    /**
+     * Regenerate id.
+     * @return void
+     * @throws froq\session\SessionException
+     */
+    public function regenerateId(): void
+    {
+        // @todo must be tested
+        // $started = $this->isStarted();
+        // if (!$started) {
+        //     session_write_close();
+        //     throw new SessionException('Session is not started yet');
+        // }
+
+        // $this->id = $this->generateId();
+        // session_id($this->id);
+
+        // if (session_id() !== $this->id) {
+        //     session_write_close();
+        //     throw new SessionException('Session ID match failed');
+        // }
+
+        // $_SESSION[$this->name]['@'] = $this->id;
     }
 
     /**
@@ -405,11 +433,7 @@ final class Session implements Arrayable
     {
         $name = $this->getName();
 
-        if (isset($_SESSION[$name])) {
-            return array_key_exists($key, $_SESSION[$name]);
-        }
-
-        return false;
+        return $name && isset($_SESSION[$name][$key]);
     }
 
     /**
@@ -425,7 +449,6 @@ final class Session implements Arrayable
 
         if (isset($_SESSION[$name])) {
             if (is_array($key)) {
-                // Must be an associative array.
                 foreach ($key as $key => $value) {
                     $_SESSION[$name][$key] = $value;
                 }
@@ -450,11 +473,9 @@ final class Session implements Arrayable
         $name = $this->getName();
 
         if (isset($_SESSION[$name])) {
-            $value = Arrays::get($_SESSION[$name], $key, $valueDefault);
-            if ($remove) {
-                $this->remove($key);
-            }
-            return $value;
+            return is_array($key)
+                ? Arrays::getAll($_SESSION[$name], $key, $valueDefault, $remove)
+                : Arrays::get($_SESSION[$name], $key, $valueDefault, $remove);
         }
 
         return null;
@@ -467,40 +488,22 @@ final class Session implements Arrayable
      */
     public function remove($key): void
     {
-        $name = $this->getName();
-
-        if (isset($_SESSION[$name])) {
-            $keys = (array) $key;
-            foreach ($keys as $key) {
-                unset($_SESSION[$name][$key]);
-            }
-        }
-    }
-
-    /**
-     * Reset.
-     * @return void
-     */
-    public function reset(): void
-    {
-        $name = $this->getName();
-
-        if (isset($_SESSION[$name])) {
-            unset($_SESSION[$name]);
-        }
+        // No value assign or return, so just for dropping fields with "true".
+        $this->get((array) $key, null, true);
     }
 
     /**
      * Flash.
      * @param  any|null $message
-     * @return any
+     * @return any|null
      */
     public function flash($message = null)
     {
-        if ($message !== null) { // Set.
+        if (func_num_args()) { // Set.
             $this->set('@flash', $message);
+            return $this;
         } else {                 // Get.
-            $message = $this->get('@flash', '', true);
+            $message = $this->get('@flash', null, true);
             return $message;
         }
     }
@@ -510,14 +513,12 @@ final class Session implements Arrayable
      */
     public function toArray(): array
     {
-        $ret = [];
-
         $name = $this->getName();
 
+        $ret = [];
         if (isset($_SESSION[$name])) {
-            $ret = to_array($_SESSION[$name], true);
+            $ret = $_SESSION[$name];
         }
-
         return $ret;
     }
 }
