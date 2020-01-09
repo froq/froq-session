@@ -400,31 +400,6 @@ final class Session implements Arrayable
     }
 
     /**
-     * Regenerate id.
-     * @return void
-     * @throws froq\session\SessionException
-     */
-    public function regenerateId(): void
-    {
-        // @todo must be tested
-        // $started = $this->isStarted();
-        // if (!$started) {
-        //     session_write_close();
-        //     throw new SessionException('Session is not started yet');
-        // }
-
-        // $this->id = $this->generateId();
-        // session_id($this->id);
-
-        // if (session_id() !== $this->id) {
-        //     session_write_close();
-        //     throw new SessionException('Session ID match failed');
-        // }
-
-        // $_SESSION[$this->name]['@'] = $this->id;
-    }
-
-    /**
      * Has.
      * @param  string $key
      * @return bool
