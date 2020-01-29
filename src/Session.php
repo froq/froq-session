@@ -27,7 +27,7 @@ declare(strict_types=1);
 namespace froq\session;
 
 use froq\util\Arrays;
-use froq\{inters\Arrayable, traits\OptionTrait};
+use froq\{interfaces\Arrayable, traits\OptionTrait};
 use froq\session\{SessionException, AbstractHandler};
 
 /**
@@ -477,14 +477,14 @@ final class Session implements Arrayable
         if (func_num_args()) { // Set.
             $this->set('@flash', $message);
             return $this;
-        } else {                 // Get.
+        } else {               // Get.
             $message = $this->get('@flash', null, true);
             return $message;
         }
     }
 
     /**
-     * @inheritDoc froq\inters\Arrayable
+     * @inheritDoc froq\interfaces\Arrayable
      */
     public function toArray(): array
     {
