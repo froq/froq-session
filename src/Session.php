@@ -42,8 +42,9 @@ final class Session implements Arrayable
 {
     /**
      * Option trait.
-     * @object froq\traits\OptionTrait
-     * @since  4.0
+     *
+     * @see froq\common\traits\OptionTrait
+     * @since 4.0
      */
     use OptionTrait;
 
