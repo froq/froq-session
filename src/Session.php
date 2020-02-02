@@ -116,7 +116,7 @@ final class Session implements Arrayable
             if (!is_dir($savePath)) {
                 $ok =@ mkdir($savePath, 0644, true);
                 if (!$ok) {
-                    throw new SessionException(sprintf('Cannot make directory, error[%s]', error()));
+                    throw new SessionException('Cannot make directory, error[%s]', ['@error']);
                 }
             }
             session_save_path($savePath);
@@ -131,19 +131,17 @@ final class Session implements Arrayable
                 if ($saveHandler == null || $saveHandlerFile == null) {
                     throw new SessionException('Both handler and handler file are required');
                 }
-                if (!file_exists($saveHandlerFile)) {
-                    throw new SessionException(sprintf("Could not find given handler file '%s'",
-                        $saveHandlerFile));
+                if (!is_file($saveHandlerFile)) {
+                    throw new SessionException('Could not find given handler file "%s"', [$saveHandlerFile]);
                 }
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler, true)) {
-                throw new SessionException(sprintf("Handler class '%s' not found", $saveHandler));
+                throw new SessionException('Handler class "%s" not found', [$saveHandler]);
             }
             if (!is_subclass_of($saveHandler, AbstractHandler::class, true)) {
-                throw new SessionException(sprintf("Handler class must extend '%s' object",
-                    AbstractHandler::class));
+                throw new SessionException('Handler class must extend "%s" object', [AbstractHandler::class]);
             }
 
             // Init handler.
@@ -257,8 +255,8 @@ final class Session implements Arrayable
             session_name($this->name);
 
             if (headers_sent($file, $line)) {
-                throw new SessionException(sprintf('Cannot use %s(), headers already sent in %s:%s',
-                    __method__, $file, $line));
+                throw new SessionException('Cannot use "%s()", headers already sent in "%s:%s"',
+                    [__method__, $file, $line]);
             }
 
             $started = session_start();
@@ -369,7 +367,7 @@ final class Session implements Arrayable
         }
 
         // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return file_exists(($this->getSavePath() ?? session_save_path()) .'/sess_'. $id);
+        return is_file(($this->getSavePath() ?? session_save_path()) .'/sess_'. $id);
     }
 
     /**
@@ -392,8 +390,8 @@ final class Session implements Arrayable
                 case 32: $id = hash('md5', $id); break;
                 case 40: $id = hash('sha1', $id); break;
                 default:
-                    throw new SessionException('No valid "hashLength" option given, only 32 and 40'.
-                        'are accepted');
+                    throw new SessionException('Invalid "hashLength" option "%s", valids are "32, 40"'.
+                        [$this->options['hashLength']]);
             }
             $id = strtoupper($id);
         }
@@ -418,7 +416,6 @@ final class Session implements Arrayable
      * @param  string|array $key
      * @param  any|null     $value
      * @return self
-     * @throws froq\session\SessionException
      */
     public function set($key, $value = null): self
     {
@@ -443,7 +440,6 @@ final class Session implements Arrayable
      * @param  any|null     $valueDefault
      * @param  bool         $remove
      * @return any
-     * @throws froq\session\SessionException
      */
     public function get($key, $valueDefault = null, bool $remove = false)
     {
