@@ -93,15 +93,14 @@ final class Session implements Arrayable
         'hash'     => true, 'hashLength' => 32, // ID length (32, 40)
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
-            'lifetime' => 0,     'path' => '/',
-            'domain'   => '',    'secure' => false,
-            'httponly' => false, 'samesite' => '',
+            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
+            'secure'   => false, 'httponly' => false, 'samesite' => '',
         ]
     ];
 
     /**
      * Constructor.
-     * @param  array|null $options
+     * @param  array<string, any>|null $options
      * @throws froq\session\SessionException
      */
     public function __construct(array $options = null)
