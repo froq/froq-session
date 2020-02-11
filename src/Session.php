@@ -412,8 +412,8 @@ final class Session implements Arrayable
 
     /**
      * Set.
-     * @param  string|array $key
-     * @param  any|null     $value
+     * @param  string|array<string, any> $key
+     * @param  any|null                  $value
      * @return self
      */
     public function set($key, $value = null): self
@@ -435,9 +435,9 @@ final class Session implements Arrayable
 
     /**
      * Get.
-     * @param  string|array $key
-     * @param  any|null     $valueDefault
-     * @param  bool         $remove
+     * @param  string|array<string, any> $key
+     * @param  any|null                  $valueDefault
+     * @param  bool                      $remove
      * @return any
      */
     public function get($key, $valueDefault = null, bool $remove = false)
@@ -455,7 +455,7 @@ final class Session implements Arrayable
 
     /**
      * Remove.
-     * @param  string|array $key
+     * @param  string|array<string, any> $key
      * @return void
      */
     public function remove($key): void
