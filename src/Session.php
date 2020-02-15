@@ -115,7 +115,7 @@ final class Session implements Arrayable
             if (!is_dir($savePath)) {
                 $ok =@ mkdir($savePath, 0644, true);
                 if (!$ok) {
-                    throw new SessionException('Cannot make directory, error[%s]', ['@error']);
+                    throw new SessionException('Cannot make directory [error: %s]', ['@error']);
                 }
             }
             session_save_path($savePath);
@@ -226,7 +226,7 @@ final class Session implements Arrayable
     {
         $started = $this->isStarted();
 
-        if (!$started || session_status() !== PHP_SESSION_ACTIVE) {
+        if (!$started || session_status() != PHP_SESSION_ACTIVE) {
             $id = session_id();
             $idUpdate = false;
             $name = $this->options['name'];
@@ -389,7 +389,7 @@ final class Session implements Arrayable
                 case 32: $id = hash('md5', $id); break;
                 case 40: $id = hash('sha1', $id); break;
                 default:
-                    throw new SessionException('Invalid "hashLength" option "%s", valids are "32, 40"'.
+                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 32, 40'.
                         [$this->options['hashLength']]);
             }
             $id = strtoupper($id);
