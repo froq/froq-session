@@ -50,39 +50,39 @@ final class Session implements Arrayable
 
     /**
      * Id.
-     * @var string
+     * @var ?string
      */
-    private string $id;
+    private ?string $id;
 
     /**
      * name.
-     * @var string
+     * @var ?string
      */
-    private string $name;
+    private ?string $name;
 
     /**
      * Save path.
-     * @var string
+     * @var ?string
      */
-    private string $savePath;
+    private ?string $savePath;
 
     /**
      * Save handler.
-     * @var object
+     * @var ?object
      */
-    private object $saveHandler;
+    private ?object $saveHandler;
 
     /**
      * Started.
-     * @var bool
+     * @var ?bool
      */
-    private bool $started;
+    private ?bool $started;
 
     /**
      * Ended.
-     * @var bool
+     * @var ?bool
      */
-    private bool $ended;
+    private ?bool $ended;
 
     /**
      * Options default.
@@ -286,13 +286,10 @@ final class Session implements Arrayable
     public function end(bool $deleteCookie = true): bool
     {
         $started = $this->isStarted();
-        $ended = $this->isEnded();
+        $ended   = $this->isEnded();
 
         if ($started && !$ended) {
             $ended = session_destroy();
-            if ($ended) {
-                $this->reset();
-            }
 
             if ($deleteCookie) {
                 setcookie($this->getName(), '', session_get_cookie_params());
