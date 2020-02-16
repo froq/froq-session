@@ -67,7 +67,7 @@ abstract class AbstractHandler implements SessionHandlerInterface
     }
 
     // Note: If any following method defined in child class of this object then these
-    // methods will be used in Froq! Session object. That could be useful when writing
+    // methods will be used in Froq! Session object. That can be useful when writing
     // session data into a database or anywhere instead default session files, or to
     // generate self-defined session ids. Remember all following id-related methods must
     // be defined in child class.
