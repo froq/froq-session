@@ -468,13 +468,9 @@ final class Session implements Arrayable
      */
     public function flash($message = null)
     {
-        if (func_num_args()) { // Set.
-            $this->set('@flash', $message);
-            return $this;
-        } else {               // Get.
-            $message = $this->get('@flash', null, true);
-            return $message;
-        }
+        return func_num_args()
+            ? $this->set('@flash', $message)
+            : $this->get('@flash', null, true);
     }
 
     /**
