@@ -292,7 +292,12 @@ final class Session implements Arrayable
             $ended = session_destroy();
 
             if ($deleteCookie) {
-                setcookie($this->getName(), '', session_get_cookie_params());
+                // Fix: "Unrecognized key 'lifetime' found".
+                $cookieParams = session_get_cookie_params();
+                $cookieParams['expires'] = $cookieParams['lifetime'];
+                unset($cookieParams['lifetime']);
+
+                setcookie($this->getName(), '', $cookieParams);
             }
         }
 
