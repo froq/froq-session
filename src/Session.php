@@ -420,6 +420,11 @@ final class Session implements Arrayable
      */
     public function set($key, $value = null): self
     {
+        // Protect ID field.
+        if ($key === '@') {
+            throw new SessionException('Cannot modify "@" key in session data');
+        }
+
         $name = $this->getName();
 
         if (isset($_SESSION[$name])) {
@@ -462,6 +467,11 @@ final class Session implements Arrayable
      */
     public function remove($key): void
     {
+        // Protect ID field.
+        if ($key === '@') {
+            throw new SessionException('Cannot modify "@" key in session data');
+        }
+
         // No value assign or return, so just for dropping fields with "true".
         $this->get((array) $key, null, true);
     }
