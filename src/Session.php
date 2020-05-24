@@ -409,7 +409,7 @@ final class Session implements Arrayable
     {
         $name = $this->getName();
 
-        return $name && isset($_SESSION[$name][$key]);
+        return isset($_SESSION[$name][$key]);
     }
 
     /**
