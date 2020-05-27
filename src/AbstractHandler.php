@@ -26,20 +26,23 @@ declare(strict_types=1);
 
 namespace froq\session;
 
+use froq\session\Session;
+use SessionHandlerInterface;
+
 /**
- * Session handler.
+ * Abstract Handler.
  * @package froq\session
- * @object  froq\session\SessionHandler
+ * @object  froq\session\AbstractHandler
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   1.0
  */
-abstract class SessionHandler implements \SessionHandlerInterface
+abstract class AbstractHandler implements SessionHandlerInterface
 {
     /**
      * Session.
      * @var froq\session\Session
      */
-    protected $session;
+    protected Session $session;
 
     /**
      * Constructor.
@@ -48,6 +51,10 @@ abstract class SessionHandler implements \SessionHandlerInterface
     public final function __construct(Session $session)
     {
         $this->session = $session;
+
+        if (method_exists($this, 'init')) {
+            $this->init();
+        }
     }
 
     /**
@@ -60,7 +67,7 @@ abstract class SessionHandler implements \SessionHandlerInterface
     }
 
     // Note: If any following method defined in child class of this object then these
-    // methods will be used in Froq! Session object. That could be useful when writing
+    // methods will be used in Froq! Session object. That can be useful when writing
     // session data into a database or anywhere instead default session files, or to
     // generate self-defined session ids. Remember all following id-related methods must
     // be defined in child class.
