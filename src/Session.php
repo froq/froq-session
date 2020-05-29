@@ -113,7 +113,7 @@ final class Session implements Arrayable
         $savePath = $options['savePath'];
         if ($savePath != null) {
             if (!is_dir($savePath)) {
-                $ok =@ mkdir($savePath, 0644, true);
+                $ok =@ mkdir($savePath, 0755, true);
                 if (!$ok) {
                     throw new SessionException('Cannot make directory [error: %s]', ['@error']);
                 }
