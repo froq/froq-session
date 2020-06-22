@@ -200,6 +200,37 @@ final class Session implements Arrayable
     }
 
     /**
+     * Get cookie.
+     * @return array
+     * @since  4.1
+     */
+    public function getCookie(): array
+    {
+        $name  = $this->getName();
+        $value = $_COOKIE[$name] ?? null;
+
+        return [$name, $value];
+    }
+
+    /**
+     * Get cookie params.
+     * @param  bool $swap
+     * @return array
+     * @since  4.1
+     */
+    public function getCookieParams(bool $swap = true): array
+    {
+        $cookieParams = session_get_cookie_params();
+
+        // Fix: "Unrecognized key 'lifetime' found".
+        if ($swap) {
+            Arrays::swap($cookieParams, 'lifetime', 'expires');
+        }
+
+        return $cookieParams;
+    }
+
+    /**
      * Is started.
      * @return ?bool
      */
@@ -292,12 +323,7 @@ final class Session implements Arrayable
             $ended = session_destroy();
 
             if ($deleteCookie) {
-                // Fix: "Unrecognized key 'lifetime' found".
-                $cookieParams = session_get_cookie_params();
-                $cookieParams['expires'] = $cookieParams['lifetime'];
-                unset($cookieParams['lifetime']);
-
-                setcookie($this->getName(), '', $cookieParams);
+                setcookie($this->getName(), '', $this->getCookieParams());
             }
         }
 
