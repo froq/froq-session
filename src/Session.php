@@ -90,11 +90,11 @@ final class Session implements Arrayable
      */
     private static array $optionsDefault = [
         'name'     => 'SID',
-        'hash'     => true, 'hashLength' => 32, // ID length (32, 40)
+        'hash'     => true, 'hashLength'  => 32, 'hashUpperCase' => true,
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
-            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
-            'secure'   => false, 'httponly' => false, 'samesite' => '',
+            'lifetime' => 0,    'path'     => '/',   'domain'   => '',
+            'secure'   => true, 'httponly' => true,  'samesite' => '',
         ]
     ];
 
@@ -348,7 +348,11 @@ final class Session implements Arrayable
 
         static $idPattern; if ($idPattern == null) {
             if ($this->options['hash']) {
-                $idPattern = '~^[A-F0-9]{'. $this->options['hashLength'] .'}$~';
+                $idPattern = sprintf(
+                    '~^[A-F0-9]{%s}$~%s',
+                    $this->options['hashLength'],
+                    $this->options['hashUpperCase'] ? '' : 'i',
+                );
             } else {
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
@@ -414,13 +418,17 @@ final class Session implements Arrayable
         // Hash by length.
         if ($this->options['hash']) {
             switch ($this->options['hashLength']) {
-                case 32: $id = hash('md5', $id); break;
-                case 40: $id = hash('sha1', $id); break;
+                case 16: $id = hash('fnv1a64', $id); break;
+                case 32: $id = hash('md5', $id);     break;
+                case 40: $id = hash('sha1', $id);    break;
                 default:
-                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 32, 40'.
+                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 16, 32, 40'.
                         [$this->options['hashLength']]);
             }
-            $id = strtoupper($id);
+
+            if ($this->options['hashUpperCase']) {
+                $id = strtoupper($id);
+            }
         }
 
         return $id;
