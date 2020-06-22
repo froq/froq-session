@@ -106,7 +106,9 @@ final class Session implements Arrayable
     public function __construct(array $options = null)
     {
         $options = array_merge(self::$optionsDefault, (array) ($options ?? []));
-        $options['cookie'] = array_merge(self::$optionsDefault['cookie'], (array) ($options['cookie'] ?? []));
+        $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
+            (array) ($options['cookie'] ?? [])
+        ));
 
         $this->setOptions($options);
 
