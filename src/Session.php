@@ -308,7 +308,7 @@ final class Session implements Arrayable
             }
         }
 
-        return ($this->started = $started);
+        return (bool) ($this->started = $started);
     }
 
     /**
@@ -329,7 +329,7 @@ final class Session implements Arrayable
             }
         }
 
-        return ($this->ended = $ended);
+        return (bool) ($this->ended = $ended);
     }
 
     /**
