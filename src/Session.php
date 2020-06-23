@@ -364,7 +364,7 @@ final class Session implements Arrayable
 
                 $idLen = ini_get('session.sid_length') ?: $idLenDefault;
                 $idBitsPerChar = ini_get('session.sid_bits_per_character');
-                if ($idBitsPerChar == '') { // Never happens, but obsession..
+                if ($idBitsPerChar == '') {
                     ini_set('session.sid_length', $idLenDefault);
                     ini_set('session.sid_bits_per_character', ($idBitsPerChar = $idBitsPerCharDefault));
                 }
