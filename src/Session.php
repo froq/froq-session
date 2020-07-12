@@ -93,8 +93,8 @@ final class Session implements Arrayable
         'hash'     => true, 'hashLength'  => 32, 'hashUpperCase' => true,
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
-            'lifetime' => 0,    'path'     => '/',   'domain'   => '',
-            'secure'   => true, 'httponly' => true,  'samesite' => '',
+            'lifetime' => 0,     'path'     => '/',    'domain'   => '',
+            'secure'   => false, 'httponly' => false,  'samesite' => '',
         ]
     ];
 
