@@ -525,6 +525,18 @@ final class Session implements Arrayable
     }
 
     /**
+     * Flush.
+     * @return void
+     * @since 4.2
+     */
+    public function flush(): void
+    {
+        foreach ($this->toArray() as $key => $_) {
+            ($key != '@') && $this->remove($key);
+        }
+    }
+
+    /**
      * @inheritDoc froq\common\interfaces\Arrayable
      */
     public function toArray(): array
