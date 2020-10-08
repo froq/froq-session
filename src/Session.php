@@ -424,7 +424,7 @@ final class Session implements Arrayable
                 case 32: $id = hash('md5', $id);     break;
                 case 40: $id = hash('sha1', $id);    break;
                 default:
-                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 16, 32, 40'.
+                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 16, 32, 40',
                         [$this->options['hashLength']]);
             }
 
