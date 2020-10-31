@@ -105,7 +105,7 @@ final class Session implements Arrayable
      */
     public function __construct(array $options = null)
     {
-        $options = array_merge(self::$optionsDefault, (array) ($options ?? []));
+        $options = array_merge(self::$optionsDefault, $options ?? []);
         $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
             (array) ($options['cookie'] ?? [])
         ));
@@ -115,7 +115,7 @@ final class Session implements Arrayable
         $savePath = $options['savePath'];
         if ($savePath != null) {
             if (!is_dir($savePath)) {
-                $ok =@ mkdir($savePath, 0755, true);
+                $ok = mkdir($savePath, 0755, true);
                 if (!$ok) {
                     throw new SessionException('Cannot make directory [error: %s]', ['@error']);
                 }
@@ -138,17 +138,17 @@ final class Session implements Arrayable
                 require_once $saveHandlerFile;
             }
 
-            if (!class_exists($saveHandler, true)) {
+            if (!class_exists($saveHandler)) {
                 throw new SessionException('Handler class "%s" not found', [$saveHandler]);
             }
-            if (!is_subclass_of($saveHandler, AbstractHandler::class, true)) {
+            if (!class_extends($saveHandler, AbstractHandler::class)) {
                 throw new SessionException('Handler class must extend "%s" object', [AbstractHandler::class]);
             }
 
             // Init handler.
             $saveHandler = new $saveHandler($this);
 
-            session_set_save_handler($saveHandler, true);
+            session_set_save_handler($saveHandler);
 
             $this->saveHandler = $saveHandler;
         }
