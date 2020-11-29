@@ -71,7 +71,7 @@ final class Session implements Arrayable
      */
     private static array $optionsDefault = [
         'name'     => 'SID',
-        'hash'     => true, 'hashLength'  => 32, 'hashUpperCase' => true,
+        'hash'     => true, 'hashLength'  => 32, 'hashUpper' => true,
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
             'lifetime' => 0,     'path'     => '/',   'domain'   => '',
@@ -336,7 +336,7 @@ final class Session implements Arrayable
                 $idPattern = sprintf(
                     '~^[A-F0-9]{%s}$~%s',
                     $this->options['hashLength'],
-                    $this->options['hashUpperCase'] ? '' : 'i',
+                    $this->options['hashUpper'] ? '' : 'i',
                 );
             } else {
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
@@ -411,7 +411,7 @@ final class Session implements Arrayable
                         $this->options['hashLength']);
             }
 
-            if ($this->options['hashUpperCase']) {
+            if ($this->options['hashUpper']) {
                 $id = strtoupper($id);
             }
         }
