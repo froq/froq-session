@@ -36,7 +36,7 @@ final class Session implements Arrayable
     private ?string $id;
 
     /**
-     * name.
+     * Name.
      * @var ?string
      */
     private ?string $name;
@@ -74,8 +74,8 @@ final class Session implements Arrayable
         'hash'     => true, 'hashLength'  => 32, 'hashUpperCase' => true,
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
-            'lifetime' => 0,     'path'     => '/',    'domain'   => '',
-            'secure'   => false, 'httponly' => false,  'samesite' => '',
+            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
+            'secure'   => false, 'httponly' => false, 'samesite' => '',
         ]
     ];
 
@@ -98,7 +98,8 @@ final class Session implements Arrayable
             if (!is_dir($savePath)) {
                 $ok = mkdir($savePath, 0755, true);
                 if (!$ok) {
-                    throw new SessionException('Cannot make directory for "savePath" option [error: %s]', '@error');
+                    throw new SessionException("Cannot make directory for 'savePath' option [error: %s]",
+                        '@error');
                 }
             }
             session_save_path($savePath);
@@ -111,20 +112,20 @@ final class Session implements Arrayable
             if (is_array($saveHandler)) { // File given?
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if ($saveHandler == null || $saveHandlerFile == null) {
-                    throw new SessionException('Both handler and handler file are required when "saveHandler" '
+                    throw new SessionException("Both handler and handler file are required when 'saveHandler' "
                         . 'option given as array');
                 }
                 if (!is_file($saveHandlerFile)) {
-                    throw new SessionException('Could not find given handler file "%s"', [$saveHandlerFile]);
+                    throw new SessionException("Could not find given handler file '%s'", $saveHandlerFile);
                 }
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler)) {
-                throw new SessionException('Handler class "%s" not found', [$saveHandler]);
+                throw new SessionException("Handler class '%s' not found", $saveHandler);
             }
             if (!class_extends($saveHandler, AbstractHandler::class)) {
-                throw new SessionException('Handler class must extend "%s" object', [AbstractHandler::class]);
+                throw new SessionException("Handler class must extend '%s' object", AbstractHandler::class);
             }
 
             // Init handler.
@@ -269,7 +270,7 @@ final class Session implements Arrayable
             session_name($this->name);
 
             if (headers_sent($file, $line)) {
-                throw new SessionException('Cannot use "%s()", headers already sent in "%s:%s"',
+                throw new SessionException("Cannot use %s(), headers already sent at '%s:%s'",
                     [__method__, $file, $line]);
             }
 
@@ -358,7 +359,7 @@ final class Session implements Arrayable
                     case '6': $idChars = '0-9a-zA-Z-,'; break;
                 }
 
-                $idPattern = '~^['. $idChars .']{'. $idLen .'}$~';
+                $idPattern = '~^[' . $idChars . ']{' . $idLen . '}$~';
             }
         }
 
@@ -406,8 +407,8 @@ final class Session implements Arrayable
                 case 32: $id = hash('md5', $id);     break;
                 case 40: $id = hash('sha1', $id);    break;
                 default:
-                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 16, 32, 40',
-                        [$this->options['hashLength']]);
+                    throw new SessionException("Invalid 'hashLength' option '%s', valids are: 16, 32, 40",
+                        $this->options['hashLength']);
             }
 
             if ($this->options['hashUpperCase']) {
@@ -440,7 +441,7 @@ final class Session implements Arrayable
     {
         // Protect ID field.
         if ($key === '@') {
-            throw new SessionException('Cannot modify "@" key in session data');
+            throw new SessionException("Cannot modify '@' key in session data");
         }
 
         $name = $this->getName();
@@ -487,7 +488,7 @@ final class Session implements Arrayable
     {
         // Protect ID field.
         if ($key === '@') {
-            throw new SessionException('Cannot modify "@" key in session data');
+            throw new SessionException("Cannot remove '@' key in session data");
         }
 
         // No value assign or return, so just for dropping fields with "true".
@@ -502,8 +503,8 @@ final class Session implements Arrayable
     public function flash($message = null)
     {
         return func_num_args()
-            ? $this->set('@flash', $message)
-            : $this->get('@flash', null, true);
+             ? $this->set('@flash', $message)
+             : $this->get('@flash', null, true);
     }
 
     /**
