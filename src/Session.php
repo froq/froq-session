@@ -111,7 +111,8 @@ final class Session implements Arrayable
             if (is_array($saveHandler)) { // File given?
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if ($saveHandler == null || $saveHandlerFile == null) {
-                    throw new SessionException('Both handler and handler file are required');
+                    throw new SessionException('Both handler and handler file are required when "saveHandler" '
+                        . 'option given as array');
                 }
                 if (!is_file($saveHandlerFile)) {
                     throw new SessionException('Could not find given handler file "%s"', [$saveHandlerFile]);
