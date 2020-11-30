@@ -462,18 +462,18 @@ final class Session implements Arrayable
     /**
      * Get.
      * @param  string|array<string, any> $key
-     * @param  any|null                  $valueDefault
+     * @param  any|null                  $default
      * @param  bool                      $remove
      * @return any
      */
-    public function get($key, $valueDefault = null, bool $remove = false)
+    public function get($key, $default = null, bool $remove = false)
     {
         $name = $this->getName();
 
         if (isset($_SESSION[$name])) {
             return is_array($key)
-                ? Arrays::getAll($_SESSION[$name], $key, $valueDefault, $remove)
-                : Arrays::get($_SESSION[$name], $key, $valueDefault, $remove);
+                ? Arrays::getAll($_SESSION[$name], $key, $default, $remove)
+                : Arrays::get($_SESSION[$name], $key, $default, $remove);
         }
 
         return null;
