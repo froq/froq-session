@@ -88,7 +88,7 @@ final class Session implements Arrayable
     {
         $options = array_merge(self::$optionsDefault, $options ?? []);
         $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
-            (array) ($options['cookie'] ?? [])
+            (array) ($options['cookie'] ?? []), CASE_LOWER
         ));
 
         $this->setOptions($options);
