@@ -420,6 +420,39 @@ final class Session implements Arrayable
     }
 
     /**
+     * Generate a CSRF token for a form & write to session.
+     *
+     * @param  string $form
+     * @return string
+     * @since  5.0
+     */
+    public function generateCsrfToken(string $form): string
+    {
+        $form = '@form:' . $form;
+        $formToken = md5(uniqid() . random_bytes(16));
+
+        $this->set($form, $formToken);
+
+        return $formToken;
+    }
+
+    /**
+     * Validate a CSRF token for a form which was previously written to session.
+     *
+     * @param  string $form
+     * @param  string $token
+     * @return bool
+     * @since  5.0
+     */
+    public function validateCsrfToken(string $form, string $token): bool
+    {
+        $form = '@form:' . $form;
+        $formToken = $this->get($form);
+
+        return $token && $formToken && hash_equals($token, $formToken);
+    }
+
+    /**
      * Has.
      * @param  string $key
      * @return bool
