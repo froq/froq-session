@@ -95,7 +95,7 @@ final class Session implements Arrayable
             if (!is_dir($savePath)) {
                 $ok = mkdir($savePath, 0755, true);
                 if (!$ok) {
-                    throw new SessionException("Cannot make directory for 'savePath' option [error: %s]",
+                    throw new SessionException('Cannot make directory for `savePath` option [error: %s]',
                         '@error');
                 }
             }
@@ -109,20 +109,20 @@ final class Session implements Arrayable
             if (is_array($saveHandler)) { // File given?
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if ($saveHandler == null || $saveHandlerFile == null) {
-                    throw new SessionException("Both handler and handler file are required when 'saveHandler' "
-                        . 'option given as array');
+                    throw new SessionException('Both handler and handler file are required when `saveHandler`'
+                        . ' option is array');
                 }
                 if (!is_file($saveHandlerFile)) {
-                    throw new SessionException("Could not find given handler file '%s'", $saveHandlerFile);
+                    throw new SessionException('Could not find given handler file `%s`', $saveHandlerFile);
                 }
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler)) {
-                throw new SessionException("Handler class '%s' not found", $saveHandler);
+                throw new SessionException('Handler class `%s` not found', $saveHandler);
             }
             if (!class_extends($saveHandler, AbstractHandler::class)) {
-                throw new SessionException("Handler class must extend '%s' object", AbstractHandler::class);
+                throw new SessionException('Handler class must extend `%s` class', AbstractHandler::class);
             }
 
             // Init handler.
@@ -205,9 +205,7 @@ final class Session implements Arrayable
         $cookieParams = session_get_cookie_params();
 
         // Fix: "Unrecognized key 'lifetime' found".
-        if ($swap) {
-            Arrays::swap($cookieParams, 'lifetime', 'expires');
-        }
+        $swap && Arrays::swap($cookieParams, 'lifetime', 'expires');
 
         return $cookieParams;
     }
@@ -240,9 +238,9 @@ final class Session implements Arrayable
         $started = $this->isStarted();
 
         if (!$started || session_status() != PHP_SESSION_ACTIVE) {
-            $id = session_id();
+            $id       = session_id();
             $idUpdate = false;
-            $name = $this->options['name'];
+            $name     = $this->options['name'];
 
             if ($this->isValidId($id)) {
                 // Pass, never happens, but obsession..
@@ -256,18 +254,18 @@ final class Session implements Arrayable
             }
 
             // Set id & name.
-            $this->id = $id;
+            $this->id   = $id;
             $this->name = $name;
 
             if ($idUpdate) {
-                // @note If id is specified, it will replace the current session id. session_id() needs to be called
-                // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
+                // @note: If id is specified, it will replace the current session id, session_id() needs to be called
+                // before session_start() for that purpose. @see http://php.net/manual/en/function.session-id.php
                 session_id($this->id);
             }
             session_name($this->name);
 
             if (headers_sent($file, $line)) {
-                throw new SessionException("Cannot use %s(), headers already sent at '%s:%s'",
+                throw new SessionException('Cannot use %s(), headers already sent at %s:%s',
                     [__method__, $file, $line]);
             }
 
@@ -404,7 +402,7 @@ final class Session implements Arrayable
                 case 32: $id = hash('md5', $id);     break;
                 case 40: $id = hash('sha1', $id);    break;
                 default:
-                    throw new SessionException("Invalid 'hashLength' option '%s', valids are: 16, 32, 40",
+                    throw new SessionException('Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
                         $this->options['hashLength']);
             }
 
@@ -425,7 +423,7 @@ final class Session implements Arrayable
      */
     public function generateCsrfToken(string $form): string
     {
-        $form = '@form:' . $form;
+        $form      = '@form:' . $form;
         $formToken = md5(uniqid() . random_bytes(16));
 
         $this->set($form, $formToken);
@@ -443,7 +441,7 @@ final class Session implements Arrayable
      */
     public function validateCsrfToken(string $form, string $token): bool
     {
-        $form = '@form:' . $form;
+        $form      = '@form:' . $form;
         $formToken = $this->get($form);
 
         return $token && $formToken && hash_equals($token, $formToken);
@@ -471,7 +469,7 @@ final class Session implements Arrayable
     {
         // Protect ID field.
         if ($key === '@') {
-            throw new SessionException("Cannot modify '@' key in session data");
+            throw new SessionException('Cannot modify `@` key in session data');
         }
 
         $name = $this->getName();
@@ -502,8 +500,8 @@ final class Session implements Arrayable
 
         if (isset($_SESSION[$name])) {
             return is_array($key)
-                ? Arrays::getAll($_SESSION[$name], $key, $default, $remove)
-                : Arrays::get($_SESSION[$name], $key, $default, $remove);
+                 ? Arrays::getAll($_SESSION[$name], $key, $default, $remove)
+                 : Arrays::get($_SESSION[$name], $key, $default, $remove);
         }
 
         return null;
@@ -518,11 +516,11 @@ final class Session implements Arrayable
     {
         // Protect ID field.
         if ($key === '@') {
-            throw new SessionException("Cannot remove '@' key in session data");
+            throw new SessionException('Cannot remove `@` key in session data');
         }
 
         // No value assign or return, so just for dropping fields with "true".
-        $this->get((array) $key, null, true);
+        $this->get((array) $key, remove: true);
     }
 
     /**
@@ -544,8 +542,8 @@ final class Session implements Arrayable
      */
     public function flush(): void
     {
-        foreach ($this->toArray() as $key => $_) {
-            ($key != '@') && $this->remove($key);
+        foreach (array_keys($this->toArray()) as $key) {
+            ($key !== '@') && $this->remove($key);
         }
     }
 
