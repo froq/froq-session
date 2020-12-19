@@ -466,6 +466,7 @@ final class Session implements Arrayable
      * @param  string|array<string, any> $key
      * @param  any|null                  $value
      * @return self
+     * @throws froq\session\SessionException
      */
     public function set($key, $value = null): self
     {
@@ -509,6 +510,7 @@ final class Session implements Arrayable
      * Remove.
      * @param  string|array<string, any> $key
      * @return bool
+     * @throws froq\session\SessionException
      */
     public function remove($key): bool
     {
