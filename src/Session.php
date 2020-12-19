@@ -508,9 +508,9 @@ final class Session implements Arrayable
     /**
      * Remove.
      * @param  string|array<string, any> $key
-     * @return void
+     * @return bool
      */
-    public function remove($key): void
+    public function remove($key): bool
     {
         // Protect ID field.
         if ($key === '@') {
@@ -518,7 +518,7 @@ final class Session implements Arrayable
         }
 
         // No value assign or return, so just for dropping fields.
-        $this->get((array) $key, remove: true);
+        return $this->get((array) $key, remove: true) !== null;
     }
 
     /**
