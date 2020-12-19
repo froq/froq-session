@@ -479,7 +479,7 @@ final class Session implements Arrayable
         if (isset($_SESSION[$name])) {
             is_array($key)
                  ? Arrays::setAll($_SESSION[$name], $key, $value)
-                 : Arrays::set($_SESSION[$name], $key, $value;
+                 : Arrays::set($_SESSION[$name], $key, $value);
         }
 
         return $this;
