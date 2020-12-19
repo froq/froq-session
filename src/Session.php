@@ -317,6 +317,7 @@ final class Session implements Arrayable
      */
     public function isValidId(?string $id): bool
     {
+        $id = trim((string) $id);
         if ($id == '') {
             return false;
         }
@@ -368,6 +369,7 @@ final class Session implements Arrayable
      */
     public function isValidSource(?string $id): bool
     {
+        $id = trim((string) $id);
         if ($id == '') {
             return false;
         }
