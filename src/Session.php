@@ -477,13 +477,9 @@ final class Session implements Arrayable
         $name = $this->getName();
 
         if (isset($_SESSION[$name])) {
-            if (is_array($key)) {
-                foreach ($key as $key => $value) {
-                    $_SESSION[$name][$key] = $value;
-                }
-            } else {
-                $_SESSION[$name][$key] = $value;
-            }
+            is_array($key)
+                 ? Arrays::setAll($_SESSION[$name], $key, $value)
+                 : Arrays::set($_SESSION[$name], $key, $value;
         }
 
         return $this;
@@ -521,7 +517,7 @@ final class Session implements Arrayable
             throw new SessionException('Cannot remove `@` key in session data');
         }
 
-        // No value assign or return, so just for dropping fields with "true".
+        // No value assign or return, so just for dropping fields.
         $this->get((array) $key, remove: true);
     }
 
