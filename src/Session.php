@@ -9,7 +9,7 @@ namespace froq\session;
 
 use froq\session\{SessionException, AbstractHandler};
 use froq\common\interfaces\Arrayable;
-use froq\common\traits\OptionTrait;
+use froq\common\trait\OptionTrait;
 use froq\util\Arrays;
 
 /**
@@ -22,9 +22,7 @@ use froq\util\Arrays;
 final class Session implements Arrayable
 {
     /**
-     * Option trait.
-     *
-     * @see froq\common\traits\OptionTrait
+     * @see froq\common\trait\OptionTrait
      * @since 4.0
      */
     use OptionTrait;
