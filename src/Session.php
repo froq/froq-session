@@ -339,19 +339,19 @@ final class Session implements Arrayable
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
                 // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
                 $idLenDefault = '26';
-                $idBitsPerCharDefault = '5';
+                $idBpcDefault = '5';
 
                 $idLen = ini_get('session.sid_length') ?: $idLenDefault;
-                $idBitsPerChar = ini_get('session.sid_bits_per_character');
-                if ($idBitsPerChar == '') {
+                $idBpc = ini_get('session.sid_bits_per_character');
+                if ($idBpc == '') {
                     ini_set('session.sid_length', $idLenDefault);
-                    ini_set('session.sid_bits_per_character', ($idBitsPerChar = $idBitsPerCharDefault));
+                    ini_set('session.sid_bits_per_character', ($idBpc = $idBpcDefault));
                 }
 
                 $idChars = '';
-                switch ($idBitsPerChar) {
-                    case '4': $idChars = '0-9a-f'; break;
-                    case '5': $idChars = '0-9a-v'; break;
+                switch ($idBpc) {
+                    case '4': $idChars = '0-9a-f';      break;
+                    case '5': $idChars = '0-9a-v';      break;
                     case '6': $idChars = '0-9a-zA-Z-,'; break;
                 }
 
@@ -400,12 +400,13 @@ final class Session implements Arrayable
         // Hash by length.
         if ($this->options['hash']) {
             switch ($this->options['hashLength']) {
-                case 16: $id = hash('fnv1a64', $id); break;
                 case 32: $id = hash('md5', $id);     break;
                 case 40: $id = hash('sha1', $id);    break;
-                default:
-                    throw new SessionException('Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
-                        $this->options['hashLength']);
+                case 16: $id = hash('fnv1a64', $id); break;
+                default: throw new SessionException(
+                    'Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
+                    $this->options['hashLength']
+                );
             }
 
             if ($this->options['hashUpper']) {
