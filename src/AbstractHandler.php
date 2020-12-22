@@ -20,14 +20,12 @@ use SessionHandlerInterface;
  */
 abstract class AbstractHandler implements SessionHandlerInterface
 {
-    /**
-     * Session.
-     * @var froq\session\Session
-     */
+    /** @var froq\session\Session */
     protected Session $session;
 
     /**
      * Constructor.
+     *
      * @param froq\session\Session $session
      */
     public final function __construct(Session $session)
@@ -40,10 +38,11 @@ abstract class AbstractHandler implements SessionHandlerInterface
     }
 
     /**
-     * Get session.
+     * Get session property.
+     *
      * @return froq\session\Session
      */
-    public final function getSession(): Session
+    public final function session(): Session
     {
         return $this->session;
     }

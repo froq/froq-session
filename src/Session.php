@@ -13,6 +13,7 @@ use froq\util\Arrays;
 
 /**
  * Session.
+ *
  * @package froq\session
  * @object  froq\session\Session
  * @author  Kerem Güneş <k-gun@mail.com>
@@ -26,46 +27,25 @@ final class Session implements Arrayable
      */
     use OptionTrait;
 
-    /**
-     * Id.
-     * @var ?string
-     */
-    private ?string $id;
+    /** @var string */
+    private string $id;
 
-    /**
-     * Name.
-     * @var ?string
-     */
-    private ?string $name;
+    /** @var string */
+    private string $name;
 
-    /**
-     * Save path.
-     * @var ?string
-     */
-    private ?string $savePath;
+    /** @var string */
+    private string $savePath;
 
-    /**
-     * Save handler.
-     * @var ?object
-     */
-    private ?object $saveHandler;
+    /** @var object */
+    private object $saveHandler;
 
-    /**
-     * Started.
-     * @var ?bool
-     */
-    private ?bool $started;
+    /** @var ?bool */
+    private ?bool $started = null;
 
-    /**
-     * Ended.
-     * @var ?bool
-     */
-    private ?bool $ended;
+    /** @var ?bool */
+    private ?bool $ended = null;
 
-    /**
-     * Options default.
-     * @var array
-     */
+    /** @var array */
     private static array $optionsDefault = [
         'name'     => 'SID',
         'hash'     => true, 'hashLength'  => 32, 'hashUpper' => true,
@@ -78,6 +58,7 @@ final class Session implements Arrayable
 
     /**
      * Constructor.
+     *
      * @param  array<string, any>|null $options
      * @throws froq\session\SessionException
      */
@@ -92,13 +73,11 @@ final class Session implements Arrayable
 
         $savePath = $options['savePath'];
         if ($savePath != null) {
-            if (!is_dir($savePath)) {
-                $ok = mkdir($savePath, 0755, true);
-                if (!$ok) {
-                    throw new SessionException('Cannot make directory for `savePath` option [error: %s]',
-                        '@error');
-                }
+            if (!is_dir($savePath) && !mkdir($savePath, 0755, true)) {
+                throw new SessionException('Cannot make directory for `savePath` option [error: %s]',
+                    '@error');
             }
+
             session_save_path($savePath);
 
             $this->savePath = $savePath;
@@ -112,9 +91,11 @@ final class Session implements Arrayable
                     throw new SessionException('Both handler and handler file are required when `saveHandler`'
                         . ' option is array');
                 }
+
                 if (!is_file($saveHandlerFile)) {
                     throw new SessionException('Could not find given handler file `%s`', $saveHandlerFile);
                 }
+
                 require_once $saveHandlerFile;
             }
 
@@ -147,48 +128,53 @@ final class Session implements Arrayable
 
     /**
      * Get id.
-     * @return ?string
+     *
+     * @return string|null
      */
-    public function getId(): ?string
+    public function id(): string|null
     {
         return $this->id ?? null;
     }
 
     /**
      * Get name.
-     * @return ?string
+     *
+     * @return string|null
      */
-    public function getName(): ?string
+    public function name(): string|null
     {
         return $this->name ?? null;
     }
 
     /**
      * Get save path.
-     * @return ?string
+     *
+     * @return string|null
      */
-    public function getSavePath(): ?string
+    public function savePath(): string|null
     {
         return $this->savePath ?? null;
     }
 
     /**
      * Get save handler.
-     * @return ?object
+     *
+     * @return object|null
      */
-    public function getSaveHandler(): ?object
+    public function saveHandler(): object|null
     {
         return $this->saveHandler ?? null;
     }
 
     /**
      * Get cookie.
+     *
      * @return array
      * @since  4.1
      */
-    public function getCookie(): array
+    public function cookie(): array
     {
-        $name  = $this->getName();
+        $name  = $this->name();
         $value = $_COOKIE[$name] ?? null;
 
         return [$name, $value];
@@ -196,11 +182,12 @@ final class Session implements Arrayable
 
     /**
      * Get cookie params.
+     *
      * @param  bool $swap
      * @return array
      * @since  4.1
      */
-    public function getCookieParams(bool $swap = true): array
+    public function cookieParams(bool $swap = true): array
     {
         $cookieParams = session_get_cookie_params();
 
@@ -211,31 +198,34 @@ final class Session implements Arrayable
     }
 
     /**
-     * Is started.
-     * @return ?bool
+     * Check started state.
+     *
+     * @return bool|null
      */
-    public function isStarted(): ?bool
+    public function started(): bool|null
     {
-        return $this->started ?? null;
+        return $this->started;
     }
 
     /**
-     * Is ended.
-     * @return ?bool
+     * Check ended state.
+     *
+     * @return bool|null
      */
-    public function isEnded(): ?bool
+    public function ended(): bool|null
     {
-        return $this->ended ?? null;
+        return $this->ended;
     }
 
     /**
      * Start.
+     *
      * @return bool
      * @throws froq\session\SessionException
      */
     public function start(): bool
     {
-        $started = $this->isStarted();
+        $started = $this->started;
 
         if (!$started || session_status() != PHP_SESSION_ACTIVE) {
             $id       = session_id();
@@ -248,7 +238,7 @@ final class Session implements Arrayable
                 // Hard and hard.
                 $id = $_COOKIE[$name] ?? '';
                 if (!$this->isValidId($id) || !$this->isValidSource($id)) {
-                    $id = $this->generateId();
+                    $id       = $this->generateId();
                     $idUpdate = true;
                 }
             }
@@ -257,9 +247,9 @@ final class Session implements Arrayable
             $this->id   = $id;
             $this->name = $name;
 
+            // @note: If id is specified, it will replace the current session id, session_id() needs to be called
+            // before session_start() for that purpose. @see http://php.net/manual/en/function.session-id.php
             if ($idUpdate) {
-                // @note: If id is specified, it will replace the current session id, session_id() needs to be called
-                // before session_start() for that purpose. @see http://php.net/manual/en/function.session-id.php
                 session_id($this->id);
             }
             session_name($this->name);
@@ -281,37 +271,37 @@ final class Session implements Arrayable
             }
 
             // Init sub-array.
-            if (!isset($_SESSION[$this->name])) {
-                $_SESSION[$this->name] = ['@' => $this->id];
-            }
+            isset($_SESSION[$this->name]) || (
+                $_SESSION[$this->name] = ['@' => $this->id]
+            );
         }
 
-        return (bool) ($this->started = $started);
+        return ($this->started = (bool) $started);
     }
 
     /**
      * End.
+     *
      * @param  bool $deleteCookie
      * @return bool
      */
     public function end(bool $deleteCookie = true): bool
     {
-        $started = $this->isStarted();
-        $ended   = $this->isEnded();
+        $ended = $this->ended;
 
-        if ($started && !$ended) {
+        if ($this->started && !$ended) {
             $ended = session_destroy();
 
-            if ($deleteCookie) {
-                setcookie($this->getName(), '', $this->getCookieParams());
-            }
+            // Drop session cookie.
+            $deleteCookie && setcookie($this->name(), '', $this->cookieParams());
         }
 
-        return (bool) ($this->ended = $ended);
+        return ($this->ended = (bool) $ended);
     }
 
     /**
-     * Is valid id.
+     * Check id validity.
+     *
      * @param  ?string $id
      * @return bool
      */
@@ -322,7 +312,7 @@ final class Session implements Arrayable
             return false;
         }
 
-        $saveHandler = $this->getSaveHandler();
+        $saveHandler = $this->saveHandler();
         if ($saveHandler != null && method_exists($saveHandler, 'isValidId')) {
             return $saveHandler->isValidId($id);
         }
@@ -363,7 +353,8 @@ final class Session implements Arrayable
     }
 
     /**
-     * Is valid source.
+     * Check source validity.
+     *
      * @param  ?string $id
      * @return bool
      */
@@ -374,23 +365,24 @@ final class Session implements Arrayable
             return false;
         }
 
-        $saveHandler = $this->getSaveHandler();
+        $saveHandler = $this->saveHandler();
         if ($saveHandler != null && method_exists($saveHandler, 'isValidSource')) {
             return $saveHandler->isValidSource($id);
         }
 
         // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return is_file(($this->getSavePath() ?? session_save_path()) .'/sess_'. $id);
+        return is_file(($this->savePath() ?? session_save_path()) .'/sess_'. $id);
     }
 
     /**
      * Generate id.
+     *
      * @return string
      * @throws froq\session\SessionException
      */
     public function generateId(): string
     {
-        $saveHandler = $this->getSaveHandler();
+        $saveHandler = $this->saveHandler();
         if ($saveHandler != null && method_exists($saveHandler, 'generateId')) {
             return $saveHandler->generateId();
         }
@@ -451,52 +443,53 @@ final class Session implements Arrayable
     }
 
     /**
-     * Has.
+     * Check a var existence with given key.
+     *
      * @param  string $key
      * @return bool
      */
     public function has(string $key): bool
     {
-        $name = $this->getName();
-
-        return isset($_SESSION[$name][$key]);
+        return isset($_SESSION[$this->name()][$key]);
     }
 
     /**
-     * Set.
+     * Put a var into session stack.
+     *
      * @param  string|array<string, any> $key
      * @param  any|null                  $value
      * @return self
      * @throws froq\session\SessionException
      */
-    public function set($key, $value = null): self
+    public function set(string|array $key, $value = null): self
     {
         // Protect ID field.
         if ($key === '@') {
             throw new SessionException('Cannot modify `@` key in session data');
         }
 
-        $name = $this->getName();
+        $name = $this->name();
 
         if (isset($_SESSION[$name])) {
             is_array($key)
-                 ? Arrays::setAll($_SESSION[$name], $key, $value)
-                 : Arrays::set($_SESSION[$name], $key, $value);
+                ? Arrays::setAll($_SESSION[$name], $key, $value)
+                : Arrays::set($_SESSION[$name], $key, $value);
         }
 
         return $this;
     }
 
     /**
-     * Get.
-     * @param  string|array<string, any> $key
-     * @param  any|null                  $default
-     * @param  bool                      $remove
-     * @return any
+     * Get a var from session stack.
+     *
+     * @param  string|array<string> $key
+     * @param  any|null             $default
+     * @param  bool                 $remove
+     * @return any|null
      */
-    public function get($key, $default = null, bool $remove = false)
+    public function get(string|array $key, $default = null, bool $remove = false)
     {
-        $name = $this->getName();
+        $name = $this->name();
 
         if (isset($_SESSION[$name])) {
             return is_array($key)
@@ -508,12 +501,13 @@ final class Session implements Arrayable
     }
 
     /**
-     * Remove.
-     * @param  string|array<string, any> $key
+     * Remove a var from session stack.
+     *
+     * @param  string|array<string> $key
      * @return bool
      * @throws froq\session\SessionException
      */
-    public function remove($key): bool
+    public function remove(string|array $key): bool
     {
         // Protect ID field.
         if ($key === '@') {
@@ -526,6 +520,7 @@ final class Session implements Arrayable
 
     /**
      * Flash.
+     *
      * @param  any|null $message
      * @return any|null
      */
@@ -538,6 +533,7 @@ final class Session implements Arrayable
 
     /**
      * Flush.
+     *
      * @return void
      * @since 4.2
      */
@@ -553,12 +549,6 @@ final class Session implements Arrayable
      */
     public function toArray(): array
     {
-        $name = $this->getName();
-
-        $ret = [];
-        if (isset($_SESSION[$name])) {
-            $ret = $_SESSION[$name];
-        }
-        return $ret;
+        return $_SESSION[$this->name()] ?? [];
     }
 }
