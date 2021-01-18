@@ -419,7 +419,7 @@ final class Session implements Arrayable
     public function generateCsrfToken(string $form): string
     {
         $form      = '@form:' . $form;
-        $formToken = md5(uniqid() . random_bytes(16));
+        $formToken = md5(uniqid(random_bytes(16), true));
 
         $this->set($form, $formToken);
 
