@@ -391,15 +391,15 @@ final class Session implements Arrayable
 
         // Hash by length.
         if ($this->options['hash']) {
-            switch ($this->options['hashLength']) {
-                case 32: $id = hash('md5', $id);     break;
-                case 40: $id = hash('sha1', $id);    break;
-                case 16: $id = hash('fnv1a64', $id); break;
-                default: throw new SessionException(
+            $algo = match ($this->options['hashLength']) {
+                32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
+                default => throw new SessionException(
                     'Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
-                    $this->options['hashLength']
-                );
-            }
+                    [$this->options['hashLength']]
+                )
+            };
+
+            $id = hash($algo, $id);
 
             if ($this->options['hashUpper']) {
                 $id = strtoupper($id);
