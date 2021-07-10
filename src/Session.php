@@ -1,105 +1,64 @@
 <?php
 /**
- * MIT License <https://opensource.org/licenses/mit>
- *
- * Copyright (c) 2015 Kerem Güneş
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Copyright (c) 2015 · Kerem Güneş
+ * Apache License 2.0 · http://github.com/froq/froq-session
  */
 declare(strict_types=1);
 
 namespace froq\session;
 
-use froq\util\Arrays;
-use froq\common\traits\OptionTrait;
-use froq\common\interfaces\Arrayable;
 use froq\session\{SessionException, AbstractHandler};
+use froq\common\{interface\Arrayable, trait\OptionTrait};
+use froq\util\Arrays;
 
 /**
  * Session.
+ *
  * @package froq\session
  * @object  froq\session\Session
- * @author  Kerem Güneş <k-gun@mail.com>
+ * @author  Kerem Güneş
  * @since   1.0
  */
 final class Session implements Arrayable
 {
     /**
-     * Option trait.
-     *
-     * @see froq\common\traits\OptionTrait
+     * @see froq\common\trait\OptionTrait
      * @since 4.0
      */
     use OptionTrait;
 
-    /**
-     * Id.
-     * @var ?string
-     */
-    private ?string $id;
+    /** @var string */
+    private string $id;
 
-    /**
-     * name.
-     * @var ?string
-     */
-    private ?string $name;
+    /** @var string */
+    private string $name;
 
-    /**
-     * Save path.
-     * @var ?string
-     */
-    private ?string $savePath;
+    /** @var string */
+    private string $savePath;
 
-    /**
-     * Save handler.
-     * @var ?object
-     */
-    private ?object $saveHandler;
+    /** @var object */
+    private object $saveHandler;
 
-    /**
-     * Started.
-     * @var ?bool
-     */
-    private ?bool $started;
+    /** @var ?bool */
+    private ?bool $started = null;
 
-    /**
-     * Ended.
-     * @var ?bool
-     */
-    private ?bool $ended;
+    /** @var ?bool */
+    private ?bool $ended = null;
 
-    /**
-     * Options default.
-     * @var array
-     */
+    /** @var array */
     private static array $optionsDefault = [
         'name'     => 'SID',
-        'hash'     => true, 'hashLength'  => 32, 'hashUpperCase' => true,
+        'hash'     => true, 'hashLength'  => 32, 'hashUpper' => true,
         'savePath' => null, 'saveHandler' => null,
         'cookie'   => [
-            'lifetime' => 0,     'path'     => '/',    'domain'   => '',
-            'secure'   => false, 'httponly' => false,  'samesite' => '',
+            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
+            'secure'   => false, 'httponly' => false, 'samesite' => '',
         ]
     ];
 
     /**
      * Constructor.
+     *
      * @param  array<string, any>|null $options
      * @throws froq\session\SessionException
      */
@@ -107,19 +66,18 @@ final class Session implements Arrayable
     {
         $options = array_merge(self::$optionsDefault, $options ?? []);
         $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
-            (array) ($options['cookie'] ?? [])
+            (array) ($options['cookie'] ?? []), CASE_LOWER
         ));
 
         $this->setOptions($options);
 
         $savePath = $options['savePath'];
         if ($savePath != null) {
-            if (!is_dir($savePath)) {
-                $ok = mkdir($savePath, 0755, true);
-                if (!$ok) {
-                    throw new SessionException('Cannot make directory [error: %s]', ['@error']);
-                }
+            if (!is_dir($savePath) && !mkdir($savePath, 0755, true)) {
+                throw new SessionException('Cannot make directory for `savePath` option [error: %s]',
+                    '@error');
             }
+
             session_save_path($savePath);
 
             $this->savePath = $savePath;
@@ -130,19 +88,22 @@ final class Session implements Arrayable
             if (is_array($saveHandler)) { // File given?
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if ($saveHandler == null || $saveHandlerFile == null) {
-                    throw new SessionException('Both handler and handler file are required');
+                    throw new SessionException('Both handler and handler file are required when `saveHandler`'
+                        . ' option is array');
                 }
+
                 if (!is_file($saveHandlerFile)) {
-                    throw new SessionException('Could not find given handler file "%s"', [$saveHandlerFile]);
+                    throw new SessionException('Could not find given handler file `%s`', $saveHandlerFile);
                 }
+
                 require_once $saveHandlerFile;
             }
 
             if (!class_exists($saveHandler)) {
-                throw new SessionException('Handler class "%s" not found', [$saveHandler]);
+                throw new SessionException('Handler class `%s` not found', $saveHandler);
             }
             if (!class_extends($saveHandler, AbstractHandler::class)) {
-                throw new SessionException('Handler class must extend "%s" object', [AbstractHandler::class]);
+                throw new SessionException('Handler class must extend `%s` class', AbstractHandler::class);
             }
 
             // Init handler.
@@ -167,48 +128,53 @@ final class Session implements Arrayable
 
     /**
      * Get id.
-     * @return ?string
+     *
+     * @return string|null
      */
-    public function getId(): ?string
+    public function id(): string|null
     {
         return $this->id ?? null;
     }
 
     /**
      * Get name.
-     * @return ?string
+     *
+     * @return string|null
      */
-    public function getName(): ?string
+    public function name(): string|null
     {
         return $this->name ?? null;
     }
 
     /**
      * Get save path.
-     * @return ?string
+     *
+     * @return string|null
      */
-    public function getSavePath(): ?string
+    public function savePath(): string|null
     {
         return $this->savePath ?? null;
     }
 
     /**
      * Get save handler.
-     * @return ?object
+     *
+     * @return object|null
      */
-    public function getSaveHandler(): ?object
+    public function saveHandler(): object|null
     {
         return $this->saveHandler ?? null;
     }
 
     /**
      * Get cookie.
+     *
      * @return array
      * @since  4.1
      */
-    public function getCookie(): array
+    public function cookie(): array
     {
-        $name  = $this->getName();
+        $name  = $this->name();
         $value = $_COOKIE[$name] ?? null;
 
         return [$name, $value];
@@ -216,53 +182,55 @@ final class Session implements Arrayable
 
     /**
      * Get cookie params.
+     *
      * @param  bool $swap
      * @return array
      * @since  4.1
      */
-    public function getCookieParams(bool $swap = true): array
+    public function cookieParams(bool $swap = true): array
     {
         $cookieParams = session_get_cookie_params();
 
         // Fix: "Unrecognized key 'lifetime' found".
-        if ($swap) {
-            Arrays::swap($cookieParams, 'lifetime', 'expires');
-        }
+        $swap && Arrays::swap($cookieParams, 'lifetime', 'expires');
 
         return $cookieParams;
     }
 
     /**
-     * Is started.
-     * @return ?bool
+     * Check started state.
+     *
+     * @return bool|null
      */
-    public function isStarted(): ?bool
+    public function started(): bool|null
     {
-        return $this->started ?? null;
+        return $this->started;
     }
 
     /**
-     * Is ended.
-     * @return ?bool
+     * Check ended state.
+     *
+     * @return bool|null
      */
-    public function isEnded(): ?bool
+    public function ended(): bool|null
     {
-        return $this->ended ?? null;
+        return $this->ended;
     }
 
     /**
      * Start.
+     *
      * @return bool
      * @throws froq\session\SessionException
      */
     public function start(): bool
     {
-        $started = $this->isStarted();
+        $started = $this->started;
 
         if (!$started || session_status() != PHP_SESSION_ACTIVE) {
-            $id = session_id();
+            $id       = session_id();
             $idUpdate = false;
-            $name = $this->options['name'];
+            $name     = $this->options['name'];
 
             if ($this->isValidId($id)) {
                 // Pass, never happens, but obsession..
@@ -270,24 +238,24 @@ final class Session implements Arrayable
                 // Hard and hard.
                 $id = $_COOKIE[$name] ?? '';
                 if (!$this->isValidId($id) || !$this->isValidSource($id)) {
-                    $id = $this->generateId();
+                    $id       = $this->generateId();
                     $idUpdate = true;
                 }
             }
 
             // Set id & name.
-            $this->id = $id;
+            $this->id   = $id;
             $this->name = $name;
 
+            // @note: If id is specified, it will replace the current session id, session_id() needs to be called
+            // before session_start() for that purpose. @see http://php.net/manual/en/function.session-id.php
             if ($idUpdate) {
-                // @note If id is specified, it will replace the current session id. session_id() needs to be called
-                // before session_start() for that purpose. @from http://php.net/manual/en/function.session-id.php
                 session_id($this->id);
             }
             session_name($this->name);
 
             if (headers_sent($file, $line)) {
-                throw new SessionException('Cannot use "%s()", headers already sent in "%s:%s"',
+                throw new SessionException('Cannot use %s(), headers already sent at %s:%s',
                     [__method__, $file, $line]);
             }
 
@@ -303,47 +271,48 @@ final class Session implements Arrayable
             }
 
             // Init sub-array.
-            if (!isset($_SESSION[$this->name])) {
-                $_SESSION[$this->name] = ['@' => $this->id];
-            }
+            isset($_SESSION[$this->name]) || (
+                $_SESSION[$this->name] = ['@' => $this->id]
+            );
         }
 
-        return (bool) ($this->started = $started);
+        return ($this->started = (bool) $started);
     }
 
     /**
      * End.
+     *
      * @param  bool $deleteCookie
      * @return bool
      */
     public function end(bool $deleteCookie = true): bool
     {
-        $started = $this->isStarted();
-        $ended   = $this->isEnded();
+        $ended = $this->ended;
 
-        if ($started && !$ended) {
+        if ($this->started && !$ended) {
             $ended = session_destroy();
 
-            if ($deleteCookie) {
-                setcookie($this->getName(), '', $this->getCookieParams());
-            }
+            // Drop session cookie.
+            $deleteCookie && setcookie($this->name(), '', $this->cookieParams());
         }
 
-        return (bool) ($this->ended = $ended);
+        return ($this->ended = (bool) $ended);
     }
 
     /**
-     * Is valid id.
+     * Check id validity.
+     *
      * @param  ?string $id
      * @return bool
      */
     public function isValidId(?string $id): bool
     {
+        $id = trim((string) $id);
         if ($id == '') {
             return false;
         }
 
-        $saveHandler = $this->getSaveHandler();
+        $saveHandler = $this->saveHandler();
         if ($saveHandler != null && method_exists($saveHandler, 'isValidId')) {
             return $saveHandler->isValidId($id);
         }
@@ -353,30 +322,30 @@ final class Session implements Arrayable
                 $idPattern = sprintf(
                     '~^[A-F0-9]{%s}$~%s',
                     $this->options['hashLength'],
-                    $this->options['hashUpperCase'] ? '' : 'i',
+                    $this->options['hashUpper'] ? '' : 'i',
                 );
             } else {
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
                 // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
                 // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
                 $idLenDefault = '26';
-                $idBitsPerCharDefault = '5';
+                $idBpcDefault = '5';
 
                 $idLen = ini_get('session.sid_length') ?: $idLenDefault;
-                $idBitsPerChar = ini_get('session.sid_bits_per_character');
-                if ($idBitsPerChar == '') {
+                $idBpc = ini_get('session.sid_bits_per_character');
+                if ($idBpc == '') {
                     ini_set('session.sid_length', $idLenDefault);
-                    ini_set('session.sid_bits_per_character', ($idBitsPerChar = $idBitsPerCharDefault));
+                    ini_set('session.sid_bits_per_character', ($idBpc = $idBpcDefault));
                 }
 
                 $idChars = '';
-                switch ($idBitsPerChar) {
-                    case '4': $idChars = '0-9a-f'; break;
-                    case '5': $idChars = '0-9a-v'; break;
+                switch ($idBpc) {
+                    case '4': $idChars = '0-9a-f';      break;
+                    case '5': $idChars = '0-9a-v';      break;
                     case '6': $idChars = '0-9a-zA-Z-,'; break;
                 }
 
-                $idPattern = '~^['. $idChars .']{'. $idLen .'}$~';
+                $idPattern = '~^[' . $idChars . ']{' . $idLen . '}$~';
             }
         }
 
@@ -384,33 +353,36 @@ final class Session implements Arrayable
     }
 
     /**
-     * Is valid source.
+     * Check source validity.
+     *
      * @param  ?string $id
      * @return bool
      */
     public function isValidSource(?string $id): bool
     {
+        $id = trim((string) $id);
         if ($id == '') {
             return false;
         }
 
-        $saveHandler = $this->getSaveHandler();
+        $saveHandler = $this->saveHandler();
         if ($saveHandler != null && method_exists($saveHandler, 'isValidSource')) {
             return $saveHandler->isValidSource($id);
         }
 
         // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return is_file(($this->getSavePath() ?? session_save_path()) .'/sess_'. $id);
+        return is_file(($this->savePath() ?? session_save_path()) .'/sess_'. $id);
     }
 
     /**
      * Generate id.
+     *
      * @return string
      * @throws froq\session\SessionException
      */
     public function generateId(): string
     {
-        $saveHandler = $this->getSaveHandler();
+        $saveHandler = $this->saveHandler();
         if ($saveHandler != null && method_exists($saveHandler, 'generateId')) {
             return $saveHandler->generateId();
         }
@@ -419,16 +391,17 @@ final class Session implements Arrayable
 
         // Hash by length.
         if ($this->options['hash']) {
-            switch ($this->options['hashLength']) {
-                case 16: $id = hash('fnv1a64', $id); break;
-                case 32: $id = hash('md5', $id);     break;
-                case 40: $id = hash('sha1', $id);    break;
-                default:
-                    throw new SessionException('Invalid "hashLength" option "%s", valids are: 16, 32, 40',
-                        [$this->options['hashLength']]);
-            }
+            $algo = match ($this->options['hashLength']) {
+                32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
+                default => throw new SessionException(
+                    'Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
+                    [$this->options['hashLength']]
+                )
+            };
 
-            if ($this->options['hashUpperCase']) {
+            $id = hash($algo, $id);
+
+            if ($this->options['hashUpper']) {
                 $id = strtoupper($id);
             }
         }
@@ -437,116 +410,145 @@ final class Session implements Arrayable
     }
 
     /**
-     * Has.
+     * Generate a CSRF token for a form & write to session.
+     *
+     * @param  string $form
+     * @return string
+     * @since  5.0
+     */
+    public function generateCsrfToken(string $form): string
+    {
+        $form      = '@form:' . $form;
+        $formToken = md5(uniqid(random_bytes(16), true));
+
+        $this->set($form, $formToken);
+
+        return $formToken;
+    }
+
+    /**
+     * Validate a CSRF token for a form which was previously written to session.
+     *
+     * @param  string $form
+     * @param  string $token
+     * @return bool
+     * @since  5.0
+     */
+    public function validateCsrfToken(string $form, string $token): bool
+    {
+        $form      = '@form:' . $form;
+        $formToken = $this->get($form);
+
+        return $token && $formToken && hash_equals($token, $formToken);
+    }
+
+    /**
+     * Check a var existence with given key.
+     *
      * @param  string $key
      * @return bool
      */
     public function has(string $key): bool
     {
-        $name = $this->getName();
-
-        return isset($_SESSION[$name][$key]);
+        return isset($_SESSION[$this->name()][$key]);
     }
 
     /**
-     * Set.
+     * Put a var into session stack.
+     *
      * @param  string|array<string, any> $key
      * @param  any|null                  $value
      * @return self
+     * @throws froq\session\SessionException
      */
-    public function set($key, $value = null): self
+    public function set(string|array $key, $value = null): self
     {
         // Protect ID field.
         if ($key === '@') {
-            throw new SessionException('Cannot modify "@" key in session data');
+            throw new SessionException('Cannot modify `@` key in session data');
         }
 
-        $name = $this->getName();
+        $name = $this->name();
 
         if (isset($_SESSION[$name])) {
-            if (is_array($key)) {
-                foreach ($key as $key => $value) {
-                    $_SESSION[$name][$key] = $value;
-                }
-            } else {
-                $_SESSION[$name][$key] = $value;
-            }
+            is_array($key)
+                ? Arrays::setAll($_SESSION[$name], $key, $value)
+                : Arrays::set($_SESSION[$name], $key, $value);
         }
 
         return $this;
     }
 
     /**
-     * Get.
-     * @param  string|array<string, any> $key
-     * @param  any|null                  $valueDefault
-     * @param  bool                      $remove
-     * @return any
+     * Get a var from session stack.
+     *
+     * @param  string|array<string> $key
+     * @param  any|null             $default
+     * @param  bool                 $remove
+     * @return any|null
      */
-    public function get($key, $valueDefault = null, bool $remove = false)
+    public function get(string|array $key, $default = null, bool $remove = false)
     {
-        $name = $this->getName();
+        $name = $this->name();
 
         if (isset($_SESSION[$name])) {
             return is_array($key)
-                ? Arrays::getAll($_SESSION[$name], $key, $valueDefault, $remove)
-                : Arrays::get($_SESSION[$name], $key, $valueDefault, $remove);
+                 ? Arrays::getAll($_SESSION[$name], $key, $default, $remove)
+                 : Arrays::get($_SESSION[$name], $key, $default, $remove);
         }
 
         return null;
     }
 
     /**
-     * Remove.
-     * @param  string|array<string, any> $key
-     * @return void
+     * Remove a var from session stack.
+     *
+     * @param  string|array<string> $key
+     * @return bool
+     * @throws froq\session\SessionException
      */
-    public function remove($key): void
+    public function remove(string|array $key): bool
     {
         // Protect ID field.
         if ($key === '@') {
-            throw new SessionException('Cannot modify "@" key in session data');
+            throw new SessionException('Cannot remove `@` key in session data');
         }
 
-        // No value assign or return, so just for dropping fields with "true".
-        $this->get((array) $key, null, true);
+        // No value assign or return, so just for dropping fields.
+        return $this->get((array) $key, remove: true) !== null;
     }
 
     /**
      * Flash.
+     *
      * @param  any|null $message
      * @return any|null
      */
     public function flash($message = null)
     {
         return func_num_args()
-            ? $this->set('@flash', $message)
-            : $this->get('@flash', null, true);
+             ? $this->set('@flash', $message)
+             : $this->get('@flash', null, true);
     }
 
     /**
      * Flush.
+     *
      * @return void
      * @since 4.2
      */
     public function flush(): void
     {
-        foreach ($this->toArray() as $key => $_) {
-            ($key != '@') && $this->remove($key);
+        foreach (array_keys($this->toArray()) as $key) {
+            ($key !== '@') && $this->remove($key);
         }
     }
 
     /**
-     * @inheritDoc froq\common\interfaces\Arrayable
+     * @inheritDoc froq\common\interface\Arrayable
      */
     public function toArray(): array
     {
-        $name = $this->getName();
-
-        $ret = [];
-        if (isset($_SESSION[$name])) {
-            $ret = $_SESSION[$name];
-        }
-        return $ret;
+        return $_SESSION[$this->name()] ?? [];
     }
 }
