@@ -39,11 +39,11 @@ final class Session implements Arrayable
     /** @var object */
     private object $saveHandler;
 
-    /** @var ?bool */
-    private ?bool $started = null;
+    /** @var bool */
+    private bool|null $started = null;
 
-    /** @var ?bool */
-    private ?bool $ended = null;
+    /** @var bool */
+    private bool|null $ended = null;
 
     /** @var array */
     private static array $optionsDefault = [
@@ -79,13 +79,13 @@ final class Session implements Arrayable
             }
 
             session_save_path($savePath);
-
             $this->savePath = $savePath;
         }
 
         $saveHandler = $options['saveHandler'];
         if ($saveHandler != null) {
-            if (is_array($saveHandler)) { // File given?
+            // When file given.
+            if (is_array($saveHandler)) {
                 @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if ($saveHandler == null || $saveHandlerFile == null) {
                     throw new SessionException('Both handler and handler file are required when `saveHandler`'
@@ -99,18 +99,17 @@ final class Session implements Arrayable
                 require_once $saveHandlerFile;
             }
 
-            if (!class_exists($saveHandler)) {
-                throw new SessionException('Handler class `%s` not found', $saveHandler);
-            }
-            if (!class_extends($saveHandler, AbstractHandler::class)) {
-                throw new SessionException('Handler class must extend `%s` class', AbstractHandler::class);
-            }
+            // Class validity checks.
+            class_exists($saveHandler) || throw new SessionException(
+                'Handler class `%s` not found', $saveHandler
+            );
+            class_extends($saveHandler, AbstractHandler::class) || throw new SessionException(
+                'Handler class must extend `%s` class', AbstractHandler::class
+            );
 
-            // Init handler.
+            // Init & save/set handler.
             $saveHandler = new $saveHandler($this);
-
             session_set_save_handler($saveHandler);
-
             $this->saveHandler = $saveHandler;
         }
 
