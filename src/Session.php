@@ -107,8 +107,7 @@ final class Session implements Arrayable, Objectable
             );
 
             // Init & save/set handler.
-            $saveHandler = new $saveHandler($this);
-            session_set_save_handler($saveHandler);
+            session_set_save_handler($saveHandler = new $saveHandler($this));
             $this->saveHandler = $saveHandler;
         }
 
@@ -226,18 +225,18 @@ final class Session implements Arrayable, Objectable
         $started = $this->started;
 
         if (!$started || session_status() != PHP_SESSION_ACTIVE) {
-            $id       = session_id();
-            $idUpdate = false;
-            $name     = $this->options['name'];
+            $id     = session_id();
+            $name   = $this->options['name'];
+            $update = false;
 
-            if ($this->isValidId($id)) {
+            if ($id && $this->isValidId($id)) {
                 // Pass, never happens, but obsession..
             } else {
                 // Hard and hard.
                 $id = $_COOKIE[$name] ?? '';
-                if (!$this->isValidId($id) || !$this->isValidSource($id)) {
-                    $id       = $this->generateId();
-                    $idUpdate = true;
+                if (!$id || !$this->isValidId($id) || !$this->isValidSource($id)) {
+                    $id     = $this->generateId();
+                    $update = true;
                 }
             }
 
@@ -245,9 +244,9 @@ final class Session implements Arrayable, Objectable
             $this->id   = $id;
             $this->name = $name;
 
-            // @note: If id is specified, it will replace the current session id, session_id() needs to be called
+            // If id is specified, it will replace the current session id, session_id() needs to be called
             // before session_start() for that purpose. @see http://php.net/manual/en/function.session-id.php
-            if ($idUpdate) {
+            if ($update) {
                 session_id($this->id);
             }
             session_name($this->name);
@@ -269,9 +268,7 @@ final class Session implements Arrayable, Objectable
             }
 
             // Init sub-array.
-            isset($_SESSION[$this->name]) || (
-                $_SESSION[$this->name] = ['@' => $this->id]
-            );
+            isset($_SESSION[$this->name]) || ($_SESSION[$this->name] = ['@' => $this->id]);
         }
 
         return ($this->started = (bool) $started);
@@ -347,7 +344,7 @@ final class Session implements Arrayable, Objectable
             }
         }
 
-        return (bool) preg_match($idPattern, $id);
+        return preg_test($idPattern, $id);
     }
 
     /**
@@ -392,7 +389,7 @@ final class Session implements Arrayable, Objectable
             $algo = match ($this->options['hashLength']) {
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
-                    'Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
+                    'Invalid `hashLength` option `%s`, valids are: 32,40,16',
                     $this->options['hashLength']
                 )
             };
@@ -417,7 +414,7 @@ final class Session implements Arrayable, Objectable
     public function generateCsrfToken(string $form): string
     {
         $form      = '@form:' . $form;
-        $formToken = md5(uniqid(random_bytes(16), true));
+        $formToken = uuid_hash();
 
         $this->set($form, $formToken);
 
@@ -437,7 +434,7 @@ final class Session implements Arrayable, Objectable
         $form      = '@form:' . $form;
         $formToken = $this->get($form);
 
-        return $token && $formToken && hash_equals($token, $formToken);
+        return $formToken && hash_equals($formToken, $token);
     }
 
     /**
@@ -448,7 +445,9 @@ final class Session implements Arrayable, Objectable
      */
     public function has(string $key): bool
     {
-        return isset($_SESSION[$this->name()][$key]);
+        $name = $this->name();
+
+        return isset($_SESSION[$name][$key]);
     }
 
     /**

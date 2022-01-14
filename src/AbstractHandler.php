@@ -32,6 +32,7 @@ abstract class AbstractHandler implements SessionHandlerInterface
     {
         $this->session = $session;
 
+        // In behalf of this (final) constructor.
         if (method_exists($this, 'init')) {
             $this->init();
         }
@@ -47,13 +48,13 @@ abstract class AbstractHandler implements SessionHandlerInterface
         return $this->session;
     }
 
-    // Note: If any following method defined in child class of this object then these
+    // Note: If any following method defined in child class of this class then these
     // methods will be used in Froq! Session object. That can be useful when writing
     // session data into a database or anywhere instead default session files, or to
-    // generate self-defined session ids. Remember all following id-related methods must
-    // be defined in child class.
+    // generate self-defined session ids. Remember all following id-related methods
+    // must be defined in child class.
 
-    // public function isValidId(string $id): bool { /* validate id */ }
-    // public function isValidSource(string $id): bool { /* validate source by id */ }
+    // public function isValidId(string|null $id): bool { /* validate id */ }
+    // public function isValidSource(string|null $id): bool { /* validate source by id */ }
     // public function generateId(): string { /* generate id */ }
 }
