@@ -8,8 +8,9 @@ declare(strict_types=1);
 namespace froq\session;
 
 use froq\session\{SessionException, AbstractHandler};
-use froq\common\{interface\Arrayable, trait\OptionTrait};
-use froq\util\Arrays;
+use froq\common\trait\OptionTrait;
+use froq\common\interface\{Arrayable, Objectable};
+use froq\util\{Util, Arrays};
 
 /**
  * Session.
@@ -19,7 +20,7 @@ use froq\util\Arrays;
  * @author  Kerem Güneş
  * @since   1.0
  */
-final class Session implements Arrayable
+final class Session implements Arrayable, Objectable
 {
     /**
      * @see froq\common\trait\OptionTrait
@@ -48,8 +49,8 @@ final class Session implements Arrayable
     /** @var array */
     private static array $optionsDefault = [
         'name'     => 'SID',
-        'hash'     => true, 'hashLength'  => 32, 'hashUpper' => true,
-        'savePath' => null, 'saveHandler' => null,
+        'hash'     => false, 'hashLength'  => null, 'hashUpper' => false,
+        'savePath' => null,  'saveHandler' => null,
         'cookie'   => [
             'lifetime' => 0,     'path'     => '/',   'domain'   => '',
             'secure'   => false, 'httponly' => false, 'samesite' => '',
@@ -64,10 +65,8 @@ final class Session implements Arrayable
      */
     public function __construct(array $options = null)
     {
-        $options = array_merge(self::$optionsDefault, $options ?? []);
-        $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
-            (array) ($options['cookie'] ?? []), CASE_LOWER
-        ));
+        $options = array_merge(self::$optionsDefault, (array) $options);
+        $options['cookie'] = array_change_key_case($options['cookie'], CASE_LOWER);
 
         $this->setOptions($options);
 
@@ -301,10 +300,10 @@ final class Session implements Arrayable
     /**
      * Check id validity.
      *
-     * @param  ?string $id
+     * @param  string|null $id
      * @return bool
      */
-    public function isValidId(?string $id): bool
+    public function isValidId(string|null $id): bool
     {
         $id = trim((string) $id);
         if ($id == '') {
@@ -354,10 +353,10 @@ final class Session implements Arrayable
     /**
      * Check source validity.
      *
-     * @param  ?string $id
+     * @param  string|null $id
      * @return bool
      */
-    public function isValidSource(?string $id): bool
+    public function isValidSource(string|null $id): bool
     {
         $id = trim((string) $id);
         if ($id == '') {
@@ -394,7 +393,7 @@ final class Session implements Arrayable
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
                     'Invalid `hashLength` option `%s`, valids are: 16, 32, 40',
-                    [$this->options['hashLength']]
+                    $this->options['hashLength']
                 )
             };
 
@@ -483,17 +482,17 @@ final class Session implements Arrayable
      *
      * @param  string|array<string> $key
      * @param  any|null             $default
-     * @param  bool                 $remove
+     * @param  bool                 $drop
      * @return any|null
      */
-    public function get(string|array $key, $default = null, bool $remove = false)
+    public function get(string|array $key, $default = null, bool $drop = false)
     {
         $name = $this->name();
 
         if (isset($_SESSION[$name])) {
             return is_array($key)
-                 ? Arrays::getAll($_SESSION[$name], $key, $default, $remove)
-                 : Arrays::get($_SESSION[$name], $key, $default, $remove);
+                 ? Arrays::getAll($_SESSION[$name], $key, $default, $drop)
+                 : Arrays::get($_SESSION[$name], $key, $default, $drop);
         }
 
         return null;
@@ -514,7 +513,7 @@ final class Session implements Arrayable
         }
 
         // No value assign or return, so just for dropping fields.
-        return $this->get((array) $key, remove: true) !== null;
+        return $this->get((array) $key, drop: true) !== null;
     }
 
     /**
@@ -527,7 +526,7 @@ final class Session implements Arrayable
     {
         return func_num_args()
              ? $this->set('@flash', $message)
-             : $this->get('@flash', null, true);
+             : $this->get('@flash', drop: true);
     }
 
     /**
@@ -538,15 +537,31 @@ final class Session implements Arrayable
      */
     public function flush(): void
     {
-        foreach (array_keys($this->toArray()) as $key) {
-            ($key !== '@') && $this->remove($key);
+        foreach (array_keys($this->arrayify()) as $key) {
+            if ($key !== '@') {
+                $this->remove($key);
+            }
         }
     }
 
     /**
      * @inheritDoc froq\common\interface\Arrayable
      */
-    public function toArray(): array
+    public function toArray(bool $deep = true): array
+    {
+        return Util::makeArray($this->arrayify(), $deep);
+    }
+
+    /**
+     * @inheritDoc froq\common\interface\Objectable
+     */
+    public function toObject(bool $deep = true): object
+    {
+        return Util::makeObject($this->arrayify(), $deep);
+    }
+
+    /** @internal */
+    private function arrayify(): array
     {
         return $_SESSION[$this->name()] ?? [];
     }
