@@ -66,15 +66,17 @@ final class Session implements Arrayable, Objectable
     public function __construct(array $options = null)
     {
         $options = array_merge(self::$optionsDefault, (array) $options);
-        $options['cookie'] = array_change_key_case($options['cookie'], CASE_LOWER);
+        $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
+            (array) $options['cookie'], CASE_LOWER
+        ));
 
         $this->setOptions($options);
 
         $savePath = $options['savePath'];
         if ($savePath != null) {
             if (!is_dir($savePath) && !mkdir($savePath, 0755, true)) {
-                throw new SessionException('Cannot make directory for `savePath` option [error: %s]',
-                    '@error');
+                throw new SessionException('Cannot make directory `%s` for `savePath` option [error: %s]',
+                    [$savePath, '@error']);
             }
 
             session_save_path($savePath);
@@ -112,7 +114,7 @@ final class Session implements Arrayable, Objectable
         }
 
         // Set cookie defaults.
-        session_set_cookie_params($options['cookie'] ?? session_get_cookie_params());
+        session_set_cookie_params($options['cookie'] ?: session_get_cookie_params());
     }
 
     /**
