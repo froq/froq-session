@@ -65,10 +65,8 @@ final class Session implements Arrayable, Objectable
      */
     public function __construct(array $options = null)
     {
-        $options = array_merge(self::$optionsDefault, (array) $options);
-        $options['cookie'] = array_merge(self::$optionsDefault['cookie'], array_change_key_case(
-            (array) $options['cookie'], CASE_LOWER
-        ));
+        $options = Arrays::options($options, self::$optionsDefault);
+        $options['cookie'] = Arrays::mapKeys($options['cookie'], 'strtolower');
 
         $this->setOptions($options);
 
