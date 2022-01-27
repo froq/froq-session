@@ -11,7 +11,7 @@ use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\OptionTrait;
 use froq\file\system\Path;
 use froq\util\{Util, Arrays};
-use Assert, Classe;
+use Assert, XClass;
 
 /**
  * Session.
@@ -126,7 +126,7 @@ final class Session implements Arrayable, Objectable
                 require_once $saveHandlerFile;
             }
 
-            $class = new Classe($saveHandler);
+            $class = new XClass($saveHandler);
             $class->exists() || throw new SessionException(
                 'Handler class `%s` not found', $class
             );
