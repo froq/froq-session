@@ -21,7 +21,7 @@ use Assert, XClass;
  * @author  Kerem Güneş
  * @since   1.0
  */
-final class Session implements Arrayable, Objectable
+final class Session implements Arrayable, Objectable, \ArrayAccess
 {
     /**
      * @see froq\common\trait\OptionTrait
@@ -154,6 +154,18 @@ final class Session implements Arrayable, Objectable
     public function __destruct()
     {
         session_register_shutdown();
+    }
+
+    /** @magic */
+    public function __set(string $key, mixed $value): void
+    {
+        $this->set($key, $value);
+    }
+
+    /** @magic */
+    public function __get(string $key): mixed
+    {
+        return $this->get($key);
     }
 
     /**
@@ -496,7 +508,7 @@ final class Session implements Arrayable, Objectable
      */
     public function set(string|array $key, mixed $value = null): self
     {
-        // Protect ID field.
+        // Prevent ID.
         if ($key === '@') {
             throw new SessionException('Cannot modify `@` key in session data');
         }
@@ -522,6 +534,11 @@ final class Session implements Arrayable, Objectable
      */
     public function get(string|array $key, mixed $default = null, bool $drop = false): mixed
     {
+        // Prevent ID.
+        if ($key === '@') {
+            throw new SessionException('Cannot get `@` key, use id() instead');
+        }
+
         $name = $this->name();
 
         if (isset($_SESSION[$name])) {
@@ -542,7 +559,7 @@ final class Session implements Arrayable, Objectable
      */
     public function remove(string|array $key): bool
     {
-        // Protect ID field.
+        // Prevent ID.
         if ($key === '@') {
             throw new SessionException('Cannot remove `@` key in session data');
         }
@@ -591,6 +608,30 @@ final class Session implements Arrayable, Objectable
     public function toObject(bool $deep = true): object
     {
         return Util::makeObject($this->array(), $deep);
+    }
+
+    /** @inheritDoc ArrayAccess */
+    public function offsetExists(mixed $key): bool
+    {
+        return $this->has($key);
+    }
+
+    /** @inheritDoc ArrayAccess */
+    public function offsetSet(mixed $key, mixed $value): void
+    {
+        $this->set($key, $value);
+    }
+
+    /** @inheritDoc ArrayAccess */
+    public function offsetGet(mixed $key): mixed
+    {
+        return $this->get($key);
+    }
+
+    /** @inheritDoc ArrayAccess */
+    public function offsetUnset(mixed $key): void
+    {
+        $this->remove($key);
     }
 
     /**
