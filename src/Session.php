@@ -642,22 +642,22 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         return $_SESSION[$this->name()] ?? [];
     }
 
-    /**
-     * Safe call for headers & sess_*() functions related errors. @keep
-     */
-    private function call(callable $func = null, mixed ...$funcArgs): mixed
-    {
-        if (headers_sent($file, $line)) {
-            throw new SessionException(
-                'Cannot use %s(), headers already sent at %s:%s',
-                [$func, $file, $line]
-            );
-        }
+    // /**
+    //  * Safe call for headers & sess_*() functions related errors. @keep
+    //  */
+    // private function call(callable $func = null, mixed ...$funcArgs): mixed
+    // {
+    //     if (headers_sent($file, $line)) {
+    //         throw new SessionException(
+    //             'Cannot use %s(), headers already sent at %s:%s',
+    //             [$func, $file, $line]
+    //         );
+    //     }
 
-        $res =@ $func(...$funcArgs);
-        if ($res === false) {
-            throw new SessionException(error_message() ?: 'Unkown');
-        }
-        return $res;
-    }
+    //     $res =@ $func(...$funcArgs);
+    //     if ($res === false) {
+    //         throw new SessionException(error_message() ?: 'Unkown');
+    //     }
+    //     return $res;
+    // }
 }
