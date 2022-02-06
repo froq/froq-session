@@ -71,7 +71,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Prepare & validate name.
         $name = trim((string) $options['name']);
-        Assert::regExp($name, '~^[\w][\w\.]*$~', new SessionException(
+        Assert::regExp($name, '~^[\w][\w\.\-]*$~', new SessionException(
             'Invalid session name, it must be alphanumeric & non-empty string'
         ));
 
