@@ -31,16 +31,16 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     use OptionTrait;
 
     /** @var string */
-    private string $id;
+    private readonly string $id;
 
     /** @var string */
-    private string $name;
+    private readonly string $name;
 
     /** @var string */
-    private string $savePath;
+    private readonly string $savePath;
 
     /** @var object */
-    private object $saveHandler;
+    private readonly object $saveHandler;
 
     /** @var bool */
     private bool|null $started = null;
