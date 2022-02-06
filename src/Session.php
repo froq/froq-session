@@ -10,6 +10,7 @@ namespace froq\session;
 use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\OptionTrait;
 use froq\file\system\Path;
+use froq\encrypting\Uuid;
 use froq\util\{Util, Arrays};
 use Assert, XClass;
 
@@ -362,6 +363,10 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             return $saveHandler->isValidId($id);
         }
 
+        if ($this->options['hash'] === 'uuid') {
+            return Uuid::isValid($id);
+        }
+
         static $idPattern; if (!$idPattern) {
             if ($this->options['hash']) {
                 $idPattern = sprintf(
@@ -430,6 +435,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             return $saveHandler->generateId();
         }
 
+        // Hash is UUID.
+        if ($this->options['hash'] === 'uuid') {
+            return Uuid::generateWithTimestamp();
+        }
+
         $id = session_create_id();
 
         // Hash by length.
@@ -437,7 +447,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             $algo = match ($this->options['hashLength']) {
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
-                    'Invalid `hashLength` option `%s`, valids are: 32,40,16',
+                    'Invalid `hashLength` option `%s` [valids: 32,40,16]',
                     $this->options['hashLength']
                 )
             };
