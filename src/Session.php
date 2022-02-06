@@ -363,7 +363,12 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             return $saveHandler->isValidId($id);
         }
 
+        // Validate by UUID.
         if ($this->options['hash'] === 'uuid') {
+            if ($this->options['hashUpper']) {
+                $id = strtolower($id);
+            }
+
             return Uuid::isValid($id);
         }
 
@@ -437,7 +442,12 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash is UUID.
         if ($this->options['hash'] === 'uuid') {
-            return Uuid::generateWithTimestamp();
+            $id = Uuid::generateWithTimestamp();
+            if ($this->options['hashUpper']) {
+                $id = strtoupper($id);
+            }
+
+            return $id;
         }
 
         $id = session_create_id();
