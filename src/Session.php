@@ -519,7 +519,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     }
 
     /**
-     * Put a var into session stack.
+     * Put a var into session data.
      *
      * @param  string|array<string, mixed> $key
      * @param  mixed|null                  $value
@@ -545,7 +545,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     }
 
     /**
-     * Get a var from session stack.
+     * Get a var from session data.
      *
      * @param  string|array<string> $key
      * @param  mixed|null           $default
@@ -571,7 +571,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     }
 
     /**
-     * Remove a var from session stack.
+     * Remove a var from session data.
      *
      * @param  string|array<string> $key
      * @return bool
