@@ -560,14 +560,15 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
+        $value = $default;
 
         if (isset($_SESSION[$name])) {
-            return is_array($key)
-                 ? Arrays::getAll($_SESSION[$name], $key, $default, $drop)
-                 : Arrays::get($_SESSION[$name], $key, $default, $drop);
+            $value = is_array($key)
+                ? Arrays::getAll($_SESSION[$name], $key, $default, $drop)
+                : Arrays::get($_SESSION[$name], $key, $default, $drop);
         }
 
-        return null;
+        return $value;
     }
 
     /**
