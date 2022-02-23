@@ -42,11 +42,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     /** @var object */
     private readonly object $saveHandler;
 
-    /** @var bool */
-    private bool|null $started = null;
+    /** @var ?bool */
+    private ?bool $started = null;
 
-    /** @var bool */
-    private bool|null $ended = null;
+    /** @var ?bool */
+    private ?bool $ended = null;
 
     /** @var array */
     private static array $optionsDefault = [
