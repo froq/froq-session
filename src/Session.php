@@ -338,8 +338,10 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (!$this->ended && $this->started) {
             $this->ended = session_destroy();
 
-            // Drop session cookie.
-            $deleteCookie && setcookie($this->name(), '', $this->cookieParams());
+            // Delete session cookie.
+            if ($deleteCookie) {
+                setcookie($this->name(), '', $this->cookieParams());
+            }
         }
 
         return $this->ended;
