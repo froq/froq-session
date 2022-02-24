@@ -348,166 +348,6 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     }
 
     /**
-     * Check id validity.
-     *
-     * @param  string|null $id
-     * @return bool
-     */
-    public function isValidId(string|null $id): bool
-    {
-        $id = trim((string) $id);
-        if (!$id) {
-            return false;
-        }
-
-        $saveHandler = $this->saveHandler();
-        if ($saveHandler && method_exists($saveHandler, 'isValidId')) {
-            return $saveHandler->isValidId($id);
-        }
-
-        // Validate by UUID.
-        if ($this->options['hash'] === 'uuid') {
-            if ($this->options['hashUpper']) {
-                $id = strtolower($id);
-            }
-
-            return Uuid::isValid($id);
-        }
-
-        static $idPattern; if (!$idPattern) {
-            if ($this->options['hash']) {
-                $idPattern = sprintf(
-                    '~^[A-F0-9]{%s}$~%s',
-                    $this->options['hashLength'],
-                    $this->options['hashUpper'] ? '' : 'i',
-                );
-            } else {
-                // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
-                // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
-                // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
-                $idLenDefault = '26';
-                $idBpcDefault = '5';
-
-                $idLen = ini_get('session.sid_length') ?: $idLenDefault;
-                $idBpc = ini_get('session.sid_bits_per_character');
-                if (!$idBpc) {
-                    ini_set('session.sid_length', $idLenDefault);
-                    ini_set('session.sid_bits_per_character', ($idBpc = $idBpcDefault));
-                }
-
-                $idChars = match ($idBpc) {
-                    '4' => '0-9a-f', '5' => '0-9a-v',
-                    '6' => '0-9a-zA-Z-,', default => ''
-                };
-
-                $idPattern = '~^[' . $idChars . ']{' . $idLen . '}$~';
-            }
-        }
-
-        return preg_test($idPattern, $id);
-    }
-
-    /**
-     * Check source validity.
-     *
-     * @param  string|null $id
-     * @return bool
-     */
-    public function isValidSource(string|null $id): bool
-    {
-        $id = trim((string) $id);
-        if (!$id) {
-            return false;
-        }
-
-        $saveHandler = $this->saveHandler();
-        if ($saveHandler && method_exists($saveHandler, 'isValidSource')) {
-            return $saveHandler->isValidSource($id);
-        }
-
-        // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return is_file(($this->savePath() ?? session_save_path()) .'/sess_'. $id);
-    }
-
-    /**
-     * Generate id.
-     *
-     * @return string
-     * @throws froq\session\SessionException
-     */
-    public function generateId(): string
-    {
-        $saveHandler = $this->saveHandler();
-        if ($saveHandler && method_exists($saveHandler, 'generateId')) {
-            return $saveHandler->generateId();
-        }
-
-        // Hash is UUID.
-        if ($this->options['hash'] === 'uuid') {
-            $id = Uuid::generateWithTimestamp();
-            if ($this->options['hashUpper']) {
-                $id = strtoupper($id);
-            }
-
-            return $id;
-        }
-
-        $id = session_create_id();
-
-        // Hash by length.
-        if ($this->options['hash']) {
-            $algo = match ($this->options['hashLength']) {
-                32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
-                default => throw new SessionException(
-                    'Invalid `hashLength` option `%s` [valids: 32,40,16]',
-                    $this->options['hashLength']
-                )
-            };
-
-            $id = hash($algo, $id);
-
-            if ($this->options['hashUpper']) {
-                $id = strtoupper($id);
-            }
-        }
-
-        return $id;
-    }
-
-    /**
-     * Generate a CSRF token for a form & write to session.
-     *
-     * @param  string $form
-     * @return string
-     * @since  5.0
-     */
-    public function generateCsrfToken(string $form): string
-    {
-        $form      = '@form:' . $form;
-        $formToken = uuid_hash();
-
-        $this->set($form, $formToken);
-
-        return $formToken;
-    }
-
-    /**
-     * Validate a CSRF token for a form which was previously written to session.
-     *
-     * @param  string $form
-     * @param  string $token
-     * @return bool
-     * @since  5.0
-     */
-    public function validateCsrfToken(string $form, string $token): bool
-    {
-        $form      = '@form:' . $form;
-        $formToken = $this->get($form);
-
-        return $formToken && hash_equals($formToken, $token);
-    }
-
-    /**
      * Check a var existence with given key.
      *
      * @param  string $key
@@ -619,6 +459,166 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         foreach (array_keys($this->array()) as $key) {
             ($key !== '@') && $this->remove($key);
         }
+    }
+
+    /**
+     * Check ID validity.
+     *
+     * @param  string|null $id
+     * @return bool
+     */
+    public function isValidId(string|null $id): bool
+    {
+        $id = trim((string) $id);
+        if (!$id) {
+            return false;
+        }
+
+        $saveHandler = $this->saveHandler();
+        if ($saveHandler && method_exists($saveHandler, 'isValidId')) {
+            return $saveHandler->isValidId($id);
+        }
+
+        // Validate by UUID.
+        if ($this->options['hash'] === 'uuid') {
+            if ($this->options['hashUpper']) {
+                $id = strtolower($id);
+            }
+
+            return Uuid::isValid($id);
+        }
+
+        static $idPattern; if (!$idPattern) {
+            if ($this->options['hash']) {
+                $idPattern = sprintf(
+                    '~^[A-F0-9]{%s}$~%s',
+                    $this->options['hashLength'],
+                    $this->options['hashUpper'] ? '' : 'i',
+                );
+            } else {
+                // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-length
+                // @see http://php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character
+                // @see https://github.com/php/php-src/blob/PHP-7.1/UPGRADING#L114
+                $idLenDefault = '26';
+                $idBpcDefault = '5';
+
+                $idLen = ini_get('session.sid_length') ?: $idLenDefault;
+                $idBpc = ini_get('session.sid_bits_per_character');
+                if (!$idBpc) {
+                    ini_set('session.sid_length', $idLenDefault);
+                    ini_set('session.sid_bits_per_character', ($idBpc = $idBpcDefault));
+                }
+
+                $idChars = match ($idBpc) {
+                    '4' => '0-9a-f', '5' => '0-9a-v',
+                    '6' => '0-9a-zA-Z-,', default => ''
+                };
+
+                $idPattern = '~^[' . $idChars . ']{' . $idLen . '}$~';
+            }
+        }
+
+        return preg_test($idPattern, $id);
+    }
+
+    /**
+     * Check source validity.
+     *
+     * @param  string|null $id
+     * @return bool
+     */
+    public function isValidSource(string|null $id): bool
+    {
+        $id = trim((string) $id);
+        if (!$id) {
+            return false;
+        }
+
+        $saveHandler = $this->saveHandler();
+        if ($saveHandler && method_exists($saveHandler, 'isValidSource')) {
+            return $saveHandler->isValidSource($id);
+        }
+
+        // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
+        return is_file(($this->savePath() ?? session_save_path()) .'/sess_'. $id);
+    }
+
+    /**
+     * Generate ID.
+     *
+     * @return string
+     * @throws froq\session\SessionException
+     */
+    public function generateId(): string
+    {
+        $saveHandler = $this->saveHandler();
+        if ($saveHandler && method_exists($saveHandler, 'generateId')) {
+            return $saveHandler->generateId();
+        }
+
+        // Hash is UUID.
+        if ($this->options['hash'] === 'uuid') {
+            $id = Uuid::generateWithTimestamp();
+            if ($this->options['hashUpper']) {
+                $id = strtoupper($id);
+            }
+
+            return $id;
+        }
+
+        $id = session_create_id();
+
+        // Hash by length.
+        if ($this->options['hash']) {
+            $algo = match ($this->options['hashLength']) {
+                32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
+                default => throw new SessionException(
+                    'Invalid `hashLength` option `%s` [valids: 32,40,16]',
+                    $this->options['hashLength']
+                )
+            };
+
+            $id = hash($algo, $id);
+
+            if ($this->options['hashUpper']) {
+                $id = strtoupper($id);
+            }
+        }
+
+        return $id;
+    }
+
+    /**
+     * Generate a CSRF token for a form & write to session.
+     *
+     * @param  string $form
+     * @return string
+     * @since  5.0
+     */
+    public function generateCsrfToken(string $form): string
+    {
+        $form      = '@form:' . $form;
+        $formToken = uuid_hash();
+
+        $this->set($form, $formToken);
+
+        return $formToken;
+    }
+
+    /**
+     * Validate a CSRF token for a form which was previously written to session.
+     *
+     * @param  string $form
+     * @param  string $token
+     * @return bool
+     * @since  5.0
+     */
+    public function validateCsrfToken(string $form, string $token): bool
+    {
+        $form      = '@form:' . $form;
+        $formToken = $this->get($form);
+
+        return $formToken && hash_equals($formToken, $token);
     }
 
     /**
