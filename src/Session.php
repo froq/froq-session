@@ -11,8 +11,8 @@ use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\OptionTrait;
 use froq\file\system\Path;
 use froq\encrypting\Uuid;
-use froq\util\{Util, Arrays};
-use Assert, XClass;
+use froq\util\Util;
+use Assert;
 
 /**
  * Session.
@@ -67,8 +67,8 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function __construct(array $options = null)
     {
-        $options = Arrays::options($options, self::$optionsDefault);
-        $options['cookie'] = Arrays::mapKeys($options['cookie'], 'strtolower');
+        $options = array_options($options, self::$optionsDefault);
+        $options['cookie'] = array_map_keys($options['cookie'], 'strtolower');
 
         // Prepare & validate name.
         $name = trim((string) $options['name']);
@@ -127,7 +127,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
                 require_once $saveHandlerFile;
             }
 
-            $class = new XClass($saveHandler);
+            $class = new \XClass($saveHandler);
             $class->exists() || throw new SessionException(
                 'Handler class `%s` not found', $class
             );
@@ -235,7 +235,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         $cookieParams = session_get_cookie_params();
 
         // Fix: "Unrecognized key 'lifetime' found".
-        $swap && Arrays::swap($cookieParams, 'lifetime', 'expires');
+        $swap && array_swap($cookieParams, 'lifetime', 'expires');
 
         return $cookieParams;
     }
@@ -378,11 +378,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         $name = $this->name();
 
         if (isset($_SESSION[$name])) {
-            if (is_string($key)) {
-                Arrays::set($_SESSION[$name], $key, $value);
-            } else {
-                Arrays::setAll($_SESSION[$name], $key);
-            }
+            array_set($_SESSION[$name], $key, $value);
         }
 
         return $this;
@@ -404,14 +400,9 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-        $value = $default;
 
         if (isset($_SESSION[$name])) {
-            if (is_string($key)) {
-                $value = Arrays::get($_SESSION[$name], $key, $default, $drop);
-            } else {
-                $value = Arrays::getAll($_SESSION[$name], $key, (array) $default, $drop);
-            }
+            $value = array_get($_SESSION[$name], $key, $default, $drop);
         }
 
         return $value;
