@@ -76,7 +76,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             'Invalid session name, it must be alphanumeric & non-empty string'
         ));
 
-        if ($options['savePath'] !== null) {
+        if (isset($options['savePath'])) {
             $savePath = $options['savePath'];
             Assert::type($savePath, 'string', new SessionException(
                 'Option `savePath` must be string, %t given', $savePath
@@ -95,11 +95,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             // Update with real path.
             $savePath = $options['savePath'] = $path->path;
 
-            session_save_path($savePath) || throw new SessionException('@error');
+            session_save_path($savePath);
             $this->savePath = $savePath;
         }
 
-        if ($options['saveHandler'] !== null) {
+        if (isset($options['saveHandler'])) {
             $saveHandler = $options['saveHandler'];
             Assert::type($saveHandler, 'string|array', new SessionException(
                 'Option `saveHandler` must be string|array, %t given', $saveHandler
@@ -138,7 +138,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             $saveHandler = $class->init($this);
 
             // Init & save/set handler.
-            session_set_save_handler($saveHandler) || throw new SessionException('@error');
+            session_set_save_handler($saveHandler);
             $this->saveHandler = $saveHandler;
         }
 
