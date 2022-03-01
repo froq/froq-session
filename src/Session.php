@@ -376,7 +376,6 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-
         if (isset($_SESSION[$name])) {
             array_set($_SESSION[$name], $key, $value);
         }
@@ -400,7 +399,6 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-
         if (isset($_SESSION[$name])) {
             $value = array_get($_SESSION[$name], $key, $default, $drop);
         }
@@ -412,18 +410,22 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
      * Remove a var from session data.
      *
      * @param  string|array<string> $key
-     * @return bool
+     * @return self
      * @throws froq\session\SessionException
      */
-    public function remove(string|array $key): bool
+    public function remove(string|array $key): self
     {
         // Prevent ID.
         if ($key === '@') {
             throw new SessionException('Cannot remove `@` key in session data');
         }
 
-        // No value assign or return, so just for dropping fields.
-        return $this->get((array) $key, drop: true) !== null;
+        $name = $this->name();
+        if (isset($_SESSION[$name])) {
+            array_remove($_SESSION[$name], $key);
+        }
+
+        return $this;
     }
 
     /**
