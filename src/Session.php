@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace froq\session;
 
 use froq\common\interface\{Arrayable, Objectable};
-use froq\common\trait\OptionTrait;
+use froq\common\trait\{FactoryTrait, OptionTrait};
 use froq\file\system\Path;
 use froq\encrypting\Uuid;
 use froq\util\Util;
@@ -24,11 +24,8 @@ use Assert;
  */
 final class Session implements Arrayable, Objectable, \ArrayAccess
 {
-    /**
-     * @see froq\common\trait\OptionTrait
-     * @since 4.0
-     */
-    use OptionTrait;
+    /** @see froq\common\trait\*Trait */
+    use FactoryTrait, OptionTrait;
 
     /** @var string */
     private readonly string $id;
@@ -403,7 +400,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             $value = array_get($_SESSION[$name], $key, $default, $drop);
         }
 
-        return $value;
+        return $value ?? $default;
     }
 
     /**
