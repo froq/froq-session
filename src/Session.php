@@ -24,7 +24,6 @@ use Assert;
  */
 final class Session implements Arrayable, Objectable, \ArrayAccess
 {
-    /** @see froq\common\trait\*Trait */
     use FactoryTrait, OptionTrait;
 
     /** @var string */
