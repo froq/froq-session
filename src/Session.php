@@ -118,7 +118,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
                 );
 
                 // Update with real path.
-                $saveHandlerFile = $options['saveHandler'][1] = $path->path;
+                $saveHandlerFile = $path->path;
 
                 require_once $saveHandlerFile;
             }
