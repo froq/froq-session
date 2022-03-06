@@ -272,8 +272,8 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         if (!$this->started || session_status() != PHP_SESSION_ACTIVE) {
             $id     = session_id();
-            $update = false;
             $name   = $this->options['name'];
+            $update = false;
 
             if ($id && $this->isValidId($id)) {
                 // Pass, never happens, but obsession..
