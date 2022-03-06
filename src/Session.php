@@ -80,9 +80,9 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
             $path = new Path($savePath);
             if ($path->isFile() || $path->isLink()) {
-                throw new SessionException('Given path is a file/link [path: %s]', $path);
+                throw new SessionException('Given path is a file / link [path: %s]', $path);
             } elseif ($path->isDirectory() && !$path->isAvailable()) {
-                throw new SessionException('Given path is not readable/writable [path: %s]', $path);
+                throw new SessionException('Given path is not readable / writable [path: %s]', $path);
             } elseif (!$path->isDirectory() && !$path->makeDirectory()) {
                 throw new SessionException('Cannot make directory `savePath` option [path: %s, error: %s]',
                     [$path, '@error']);
@@ -113,7 +113,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
                 $path = new Path($saveHandlerFile);
                 $path->isFile() || throw new SessionException(
-                    'Handler file not exists or not a file [file: %s, type: %s]',
+                    'Handler file not exists / not a file [file: %s, type: %s]',
                     [$path, $path->type ?: 'null']
                 );
 
