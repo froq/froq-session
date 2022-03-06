@@ -80,7 +80,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
             $path = new Path($savePath);
             if ($path->isFile() || $path->isLink()) {
-                throw new SessionException('Given path is a file or a link [path: %s]', $path);
+                throw new SessionException('Given path is a file/link [path: %s]', $path);
             } elseif ($path->isDirectory() && !$path->isAvailable()) {
                 throw new SessionException('Given path is not readable/writable [path: %s]', $path);
             } elseif (!$path->isDirectory() && !$path->makeDirectory(0755, true)) {
