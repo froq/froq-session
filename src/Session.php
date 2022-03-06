@@ -103,7 +103,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
             // When file given.
             if (is_array($saveHandler)) {
-                @ [$saveHandler, $saveHandlerFile] = $saveHandler;
+                [$saveHandler, $saveHandlerFile] = array_list($saveHandler, 2);
                 if (!$saveHandler || !$saveHandlerFile) {
                     throw new SessionException(
                         'Both handler and handler file are required '.
