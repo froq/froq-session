@@ -139,8 +139,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         // Set cookie defaults.
-        session_set_cookie_params($options['cookie'] ?: session_get_cookie_params())
-            || throw new SessionException('@error');
+        session_set_cookie_params($options['cookie'] ?: session_get_cookie_params());
 
         $this->setOptions(['name' => $name] + $options);
     }
