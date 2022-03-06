@@ -89,7 +89,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             }
 
             // Update with real path.
-            $savePath = $options['savePath'] = $path->path;
+            $savePath = $path->path;
 
             session_save_path($savePath);
             $this->savePath = $savePath;
@@ -103,7 +103,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
             // When file given.
             if (is_array($saveHandler)) {
-                [$saveHandler, $saveHandlerFile] = array_list($saveHandler, 2);
+                [$saveHandler, $saveHandlerFile] = [key($saveHandler), value($saveHandler)];
                 if (!$saveHandler || !$saveHandlerFile) {
                     throw new SessionException(
                         'Both handler and handler file are required '.
