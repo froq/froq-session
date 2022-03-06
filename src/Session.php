@@ -85,7 +85,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
                 throw new SessionException('Given path is not readable/writable [path: %s]', $path);
             } elseif (!$path->isDirectory() && !$path->makeDirectory(0755, true)) {
                 throw new SessionException('Cannot make directory `savePath` option [path: %s, error: %s]',
-                    [$savePath, '@error']);
+                    [$path, '@error']);
             }
 
             // Update with real path.
