@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace froq\session;
 
 use froq\common\interface\{Arrayable, Objectable};
-use froq\common\trait\{FactoryTrait, OptionTrait};
+use froq\common\trait\FactoryTrait;
 use froq\file\system\Path;
 use froq\encrypting\Uuid;
 use froq\util\Util;
@@ -24,7 +24,7 @@ use Assert;
  */
 final class Session implements Arrayable, Objectable, \ArrayAccess
 {
-    use FactoryTrait, OptionTrait;
+    use FactoryTrait;
 
     /** @var string */
     private readonly string $id;
@@ -44,38 +44,30 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     /** @var ?bool */
     private ?bool $ended = null;
 
-    /** @var array */
-    private static array $optionsDefault = [
-        'name'     => 'SID',
-        'hash'     => false, 'hashLength'  => 32, 'hashUpper' => false,
-        'savePath' => null,  'saveHandler' => null,
-        'cookie'   => [
-            'lifetime' => 0,     'path'     => '/',   'domain'   => '',
-            'secure'   => false, 'httponly' => false, 'samesite' => '',
-        ]
-    ];
+    /** @var froq\session\SessionOptions */
+    private SessionOptions $options;
 
     /**
      * Constructor.
      *
-     * @param  array<string, mixed>|null $options
+     * @param  array|null $options
      * @throws froq\session\SessionException
      */
     public function __construct(array $options = null)
     {
-        $options = array_options($options, self::$optionsDefault);
-        $options['cookie'] = array_map_keys($options['cookie'], 'strtolower');
+        $this->options = SessionOptions::create($options);
 
-        // Prepare & validate name.
-        $name = trim((string) $options['name']);
-        Assert::regExp($name, '~^[\w][\w\.\-]*$~', new SessionException(
-            'Invalid session name, it must be alphanumeric & non-empty string'
-        ));
+        // Validate name.
+        preg_test('~^([\w][\w\.\-]*)$~', $this->options['name'])
+            || throw new SessionException('Session name must be alphanumeric & non-empty string');
 
-        if (isset($options['savePath'])) {
-            $savePath = $options['savePath'];
+        if (isset($this->options['savePath'])) {
+            $savePath = $this->options['savePath'];
             Assert::type($savePath, 'string', new SessionException(
                 'Option `savePath` must be string, %t given', $savePath
+            ));
+            Assert::true(trim($savePath) != '', new SessionException(
+                'Option `savePath` must not be empty'
             ));
 
             $path = new Path($savePath);
@@ -89,14 +81,13 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             }
 
             // Update with real path.
-            $savePath = $path->path;
+            $this->savePath = $path->path;
 
-            session_save_path($savePath);
-            $this->savePath = $savePath;
+            session_save_path($this->savePath);
         }
 
-        if (isset($options['saveHandler'])) {
-            $saveHandler = $options['saveHandler'];
+        if (isset($this->options['saveHandler'])) {
+            $saveHandler = $this->options['saveHandler'];
             Assert::type($saveHandler, 'string|array', new SessionException(
                 'Option `saveHandler` must be string|array, %t given', $saveHandler
             ));
@@ -131,17 +122,13 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
                 'Handler class must extend `%s` class', AbstractHandler::class
             );
 
-            $saveHandler = $class->init($this);
+            $this->saveHandler = $class->init($this);
 
-            // Init & save/set handler.
-            session_set_save_handler($saveHandler);
-            $this->saveHandler = $saveHandler;
+            session_set_save_handler($this->saveHandler);
         }
 
         // Set cookie defaults.
-        session_set_cookie_params($options['cookie'] ?: session_get_cookie_params());
-
-        $this->setOptions(['name' => $name] + $options);
+        session_set_cookie_params((array) $this->options['cookie'] ?: session_get_cookie_params());
     }
 
     /**
@@ -315,8 +302,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             }
 
             // Init sub-array.
-            isset($_SESSION[$this->name])
-                || ($_SESSION[$this->name] = ['@' => $this->id]);
+            isset($_SESSION[$this->name]) || $_SESSION[$this->name] = ['@' => $this->id];
         }
 
         return $this->started;
@@ -326,9 +312,9 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
      * End.
      *
      * @param  bool $deleteCookie
-     * @return bool
+     * @return bool|null
      */
-    public function end(bool $deleteCookie = true): bool
+    public function end(bool $deleteCookie = true): bool|null
     {
         if (!$this->ended && $this->started) {
             $this->ended = session_destroy();
@@ -479,7 +465,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         static $idPattern; if (!$idPattern) {
             if ($this->options['hash']) {
                 $idPattern = sprintf(
-                    '~^[A-F0-9]{%s}$~%s',
+                    '~^[A-F0-9]{%d}$~%s',
                     $this->options['hashLength'],
                     $this->options['hashUpper'] ? '' : 'i',
                 );
@@ -558,7 +544,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash by length.
         if ($this->options['hash']) {
-            $algo = match ($this->options['hashLength']) {
+            $algo = match ((int) $this->options['hashLength']) {
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
                     'Invalid `hashLength` option `%s` [valids: 32,40,16]',
