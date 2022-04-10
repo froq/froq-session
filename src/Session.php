@@ -357,9 +357,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-        if (isset($_SESSION[$name])) {
-            array_set($_SESSION[$name], $key, $value);
+        if (!isset($_SESSION[$name])) {
+            throw new SessionException('Session not started yet, call start()');
         }
+
+        array_set($_SESSION[$name], $key, $value);
 
         return $this;
     }
@@ -371,6 +373,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
      * @param  mixed|null           $default
      * @param  bool                 $drop
      * @return mixed
+     * @throws froq\session\SessionException
      */
     public function get(string|array $key, mixed $default = null, bool $drop = false): mixed
     {
@@ -380,11 +383,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-        if (isset($_SESSION[$name])) {
-            $value = array_get($_SESSION[$name], $key, $default, $drop);
+        if (!isset($_SESSION[$name])) {
+            throw new SessionException('Session not started yet, call start()');
         }
 
-        return $value ?? $default;
+        return array_get($_SESSION[$name], $key, $default, $drop);
     }
 
     /**
@@ -402,9 +405,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-        if (isset($_SESSION[$name])) {
-            array_remove($_SESSION[$name], $key);
+        if (!isset($_SESSION[$name])) {
+            throw new SessionException('Session not started yet, call start()');
         }
+
+        array_remove($_SESSION[$name], $key);
 
         return $this;
     }
@@ -413,7 +418,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
      * Flash.
      *
      * @param  mixed|null $message
-     * @return mixed|null (self)
+     * @return mixed (or self)
      */
     public function flash(mixed $message = null): mixed
     {
