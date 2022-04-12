@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace froq\session;
 
 /**
- * Session Options.
+ * Session options with defaults.
  *
  * @package froq\session
  * @object  froq\session\SessionOptions

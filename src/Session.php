@@ -15,7 +15,7 @@ use froq\util\Util;
 use Assert;
 
 /**
- * Session.
+ * A session management class that utilies internal session stuff.
  *
  * @package froq\session
  * @object  froq\session\Session

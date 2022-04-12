@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace froq\session;
 
 /**
- * Abstract Handler.
+ * An abstract session handler.
  *
  * @package froq\session
  * @object  froq\session\AbstractHandler
