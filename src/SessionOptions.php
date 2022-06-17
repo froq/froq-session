@@ -14,6 +14,7 @@ namespace froq\session;
  * @object  froq\session\SessionOptions
  * @author  Kerem Güneş
  * @since   6.0
+ * @internal
  */
 class SessionOptions extends \Options
 {
