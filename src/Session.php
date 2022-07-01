@@ -577,7 +577,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     public function generateCsrfToken(string $form): string
     {
         $form      = '@form@' . $form;
-        $formToken = uuid_hash();
+        $formToken = md5(random_bytes(20));
 
         $this->set($form, $formToken);
 
