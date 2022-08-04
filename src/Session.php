@@ -152,6 +152,23 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     }
 
     /**
+     * Get an option.
+     *
+     * @param  string $key
+     * @return mixed
+     * @since  6.0
+     */
+    public function option(string $key): mixed
+    {
+        if (strpos($key, '.')) {
+            [$key, $subkey] = split('.', $key, 2);
+            return $this->options[$key][$subkey] ?? null;
+        }
+
+        return $this->options[$key] ?? null;
+    }
+
+    /**
      * Get id.
      *
      * @return string|null
