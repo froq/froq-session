@@ -37,7 +37,7 @@ class SessionOptions extends \Options
         ];
 
         // Create & filter base options.
-        $that = (new SessionOptions($options, $optionsDefault))
+        $that = (new SessionOptions($options, $optionsDefault, map: false))
             ->filterDefaultKeys($optionsDefault);
         $that->name = trim((string) $that->name);
 
