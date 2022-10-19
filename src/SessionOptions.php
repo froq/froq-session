@@ -38,12 +38,12 @@ class SessionOptions extends \Options
 
         // Create & filter base options.
         $that = (new SessionOptions($options, $optionsDefault, map: false))
-            ->filterDefaultKeys($optionsDefault);
+            ->filterDefaults($optionsDefault);
         $that->name = trim((string) $that->name);
 
         // Create & filter cookie options.
         $that->cookie = (new SessionOptions($that->cookie))
-            ->filterDefaultKeys($optionsDefault['cookie']);
+            ->filterDefaults($optionsDefault['cookie']);
 
         return $that;
     }
