@@ -12,7 +12,7 @@ use froq\common\trait\FactoryTrait;
 use froq\file\system\Path;
 use froq\encrypting\Uuid;
 use froq\util\Util;
-use Assert;
+use Assert, XClass;
 
 /**
  * A session management class that utilies internal session stuff.
@@ -114,7 +114,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
                 require_once $saveHandlerFile;
             }
 
-            $class = new \XClass($saveHandler);
+            $class = new XClass($saveHandler);
             $class->exists() || throw new SessionException(
                 'Handler class `%s` not found', $class
             );
