@@ -270,7 +270,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (headers_sent($file, $line)) {
             throw new SessionException(
                 'Cannot use %s(), headers already sent at %s:%s',
-                [__method__, $file, $line]
+                [__METHOD__, $file, $line]
             );
         }
 
