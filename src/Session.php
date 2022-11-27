@@ -64,10 +64,10 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (isset($this->options['savePath'])) {
             $savePath = $this->options['savePath'];
             Assert::type($savePath, 'string', new SessionException(
-                'Option `savePath` must be string, %t given', $savePath
+                'Option "savePath" must be string, %t given', $savePath
             ));
             Assert::true(trim($savePath) != '', new SessionException(
-                'Option `savePath` must not be empty'
+                'Option "savePath" must not be empty'
             ));
 
             $path = new Path($savePath);
@@ -76,7 +76,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             } elseif ($path->isDirectory() && !$path->isAvailable()) {
                 throw new SessionException('Given path is not readable / writable [path: %s]', $path);
             } elseif (!$path->isDirectory() && !$path->makeDirectory()) {
-                throw new SessionException('Cannot make directory `savePath` option [path: %s, error: %s]',
+                throw new SessionException('Cannot make directory "savePath" option [path: %s, error: %s]',
                     [$path, '@error']);
             }
 
@@ -89,7 +89,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (isset($this->options['saveHandler'])) {
             $saveHandler = $this->options['saveHandler'];
             Assert::type($saveHandler, 'string|array', new SessionException(
-                'Option `saveHandler` must be string|array, %t given', $saveHandler
+                'Option "saveHandler" must be string|array, %t given', $saveHandler
             ));
 
             // When file given.
@@ -98,7 +98,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
                 if (!$saveHandler || !$saveHandlerFile) {
                     throw new SessionException(
                         'Both handler and handler file are required '.
-                        'when `saveHandler` option is array'
+                        'when "saveHandler" option is array'
                     );
                 }
 
@@ -116,10 +116,10 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
             $class = new XClass($saveHandler);
             $class->exists() || throw new SessionException(
-                'Handler class `%s` not found', $class
+                'Handler class %q not found', $class
             );
             $class->extends(AbstractHandler::class) || throw new SessionException(
-                'Handler class must extend `%s` class', AbstractHandler::class
+                'Handler class %q must extend class %q', AbstractHandler::class
             );
 
             $this->saveHandler = $class->init($this);
@@ -370,7 +370,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot modify `@` key in session data');
+            throw new SessionException('Cannot modify key "@"');
         }
 
         $name = $this->name();
@@ -396,7 +396,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot get `@` key, use id() instead');
+            throw new SessionException('Cannot get key "@", use id() instead');
         }
 
         $name = $this->name();
@@ -418,7 +418,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot remove `@` key in session data');
+            throw new SessionException('Cannot remove key "@"');
         }
 
         $name = $this->name();
@@ -569,7 +569,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
             $algo = match ((int) $this->options['hashLength']) {
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
-                    'Invalid `hashLength` option `%s` [valids: 32,40,16]',
+                    'Invalid "hashLength" option %q [valids: 32,40,16]',
                     $this->options['hashLength']
                 )
             };
