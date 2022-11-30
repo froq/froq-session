@@ -22,7 +22,7 @@ use Assert, XClass;
  * @author  Kerem Güneş
  * @since   1.0
  */
-final class Session implements Arrayable, Objectable, \ArrayAccess
+class Session implements Arrayable, Objectable, \ArrayAccess
 {
     use FactoryTrait;
 
