@@ -17,7 +17,7 @@ namespace froq\session;
  */
 abstract class AbstractHandler implements \SessionHandlerInterface
 {
-    /** @var froq\session\Session */
+    /** Session instance. */
     protected Session $session;
 
     /**

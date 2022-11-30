@@ -26,25 +26,25 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 {
     use FactoryTrait;
 
-    /** @var string */
+    /** Session ID. */
     private readonly string $id;
 
-    /** @var string */
+    /** Session name. */
     private readonly string $name;
 
-    /** @var string */
+    /** Session save path. */
     private readonly string $savePath;
 
-    /** @var object */
+    /** Session save handler. */
     private readonly object $saveHandler;
 
-    /** @var ?bool */
+    /** Session started state. */
     private ?bool $started = null;
 
-    /** @var ?bool */
+    /** Session ended state. */
     private ?bool $ended = null;
 
-    /** @var froq\session\SessionOptions */
+    /** Options with defaults. */
     private SessionOptions $options;
 
     /**
