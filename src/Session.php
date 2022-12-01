@@ -64,7 +64,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             Assert::type($savePath, 'string', new SessionException(
                 'Option "savePath" must be string, %t given', $savePath
             ));
-            Assert::true(trim($savePath) != '', new SessionException(
+            Assert::true(trim($savePath) !== '', new SessionException(
                 'Option "savePath" must not be empty'
             ));
 
@@ -276,7 +276,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             );
         }
 
-        if (!$this->started || session_status() != PHP_SESSION_ACTIVE) {
+        if (!$this->started || session_status() !== PHP_SESSION_ACTIVE) {
             $id     = session_id();
             $name   = $this->options['name'];
             $update = false;
