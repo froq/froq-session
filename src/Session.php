@@ -137,13 +137,17 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         session_register_shutdown();
     }
 
-    /** @magic */
+    /**
+     * @magic
+     */
     public function __set(string $key, mixed $value): void
     {
         $this->set($key, $value);
     }
 
-    /** @magic */
+    /**
+     * @magic
+     */
     public function __get(string $key): mixed
     {
         return $this->get($key);
