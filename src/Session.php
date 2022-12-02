@@ -635,25 +635,33 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         return Util::makeObject($this->array(), $deep);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetExists(mixed $key): bool
     {
         return $this->has($key);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetSet(mixed $key, mixed $value): void
     {
         $this->set($key, $value);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetGet(mixed $key): mixed
     {
         return $this->get($key);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetUnset(mixed $key): void
     {
         $this->remove($key);
