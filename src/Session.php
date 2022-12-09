@@ -102,8 +102,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
                 if (!is_file($saveHandlerFile)) {
                     throw new SessionException(
-                        'Handler file not exists / not a file [file: %s, type: %s]',
-                        [$info, $info->type ?: 'null']
+                        'Handler file not exists [file: %s]',
+                        $saveHandlerFile
                     );
                 }
 
