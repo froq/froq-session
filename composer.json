@@ -8,8 +8,7 @@
     "require": {
         "php": "^8.1",
         "froq/froq-common": "^6.0",
-        "froq/froq-file": "^6.0",
-        "froq/froq-encrypting": "^6.0"
+        "froq/froq-file": "^6.0"
     },
     "autoload": {
         "classmap": ["src/"]

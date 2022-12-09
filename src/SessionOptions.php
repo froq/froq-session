@@ -26,8 +26,8 @@ class SessionOptions extends \Options
     {
         static $optionsDefault = [
             'name'     => 'SID',
-            'hash'     => false, 'hashLength'  => 32, 'hashUpper' => false,
-            'savePath' => null,  'saveHandler' => null,
+            'hash'     => null, 'hashUpper'   => false,
+            'savePath' => null, 'saveHandler' => null,
             'cookie'   => [
                 'lifetime' => 0,     'path'     => '/',   'domain'   => '',
                 'secure'   => false, 'httponly' => false, 'samesite' => '',

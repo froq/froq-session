@@ -7,10 +7,10 @@ namespace froq\session;
 
 use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\FactoryTrait;
-use froq\encrypting\Uuid;
+// use froq\encrypting\Uuid;
 use froq\file\FileInfo;
 use froq\util\Util;
-use Assert, XClass;
+use Assert, Uuid;
 
 /**
  * A session management class that utilies internal session stuff.
@@ -110,7 +110,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 require_once $saveHandlerFile;
             }
 
-            $class = new XClass($saveHandler);
+            $class = new \XClass($saveHandler);
             $class->exists() || throw new SessionException(
                 'Handler class %q not found', $class
             );
@@ -477,18 +477,14 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Validate by UUID.
         if ($this->options['hash'] === 'uuid') {
-            if ($this->options['hashUpper']) {
-                $id = strtolower($id);
-            }
-
-            return Uuid::isValid($id);
+            return Uuid::validate($id);
         }
 
         static $idPattern; if (!$idPattern) {
             if ($this->options['hash']) {
                 $idPattern = sprintf(
                     '~^[A-F0-9]{%d}$~%s',
-                    $this->options['hashLength'],
+                    $this->options['hash'],
                     $this->options['hashUpper'] ? '' : 'i',
                 );
             } else {
@@ -554,7 +550,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash is UUID.
         if ($this->options['hash'] === 'uuid') {
-            $id = Uuid::generateWithTimestamp();
+            $id = Uuid::generate(timed: true);
+
             if ($this->options['hashUpper']) {
                 $id = strtoupper($id);
             }
@@ -566,11 +563,11 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash by length.
         if ($this->options['hash']) {
-            $algo = match ((int) $this->options['hashLength']) {
+            $algo = match ((int) $this->options['hash']) {
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
-                    'Invalid "hashLength" option %q [valids: 32,40,16]',
-                    $this->options['hashLength']
+                    'Invalid "hash" option %q [valids: 32, 40, 16, uuid]',
+                    $this->options['hash']
                 )
             };
 
