@@ -7,8 +7,8 @@ namespace froq\session;
 
 use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\FactoryTrait;
-use froq\file\system\Path;
 use froq\encrypting\Uuid;
+use froq\file\FileInfo;
 use froq\util\Util;
 use Assert, XClass;
 
@@ -68,18 +68,18 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 'Option "savePath" must not be empty'
             ));
 
-            $path = new Path($savePath);
-            if ($path->isFile() || $path->isLink()) {
-                throw new SessionException('Given path is a file / link [path: %s]', $path);
-            } elseif ($path->isDirectory() && !$path->isAvailable()) {
-                throw new SessionException('Given path is not readable / writable [path: %s]', $path);
-            } elseif (!$path->isDirectory() && !$path->makeDirectory()) {
+            $info = new FileInfo($savePath);
+            if ($info->isFile() || $info->isLink()) {
+                throw new SessionException('Given path is a file / link [path: %s]', $info);
+            } elseif ($info->isDirectory() && !$info->isAvailable()) {
+                throw new SessionException('Given path is not readable / writable [path: %s]', $info);
+            } elseif (!$info->isDirectory() && !@dirmake($info->path)) {
                 throw new SessionException('Cannot make directory "savePath" option [path: %s, error: @error]',
-                    $path, extract: true);
+                    $info, extract: true);
             }
 
             // Update with real path.
-            $this->savePath = $path->path;
+            $this->savePath = $info->path;
 
             session_save_path($this->savePath);
         }
@@ -100,14 +100,12 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                     );
                 }
 
-                $path = new Path($saveHandlerFile);
-                $path->isFile() || throw new SessionException(
-                    'Handler file not exists / not a file [file: %s, type: %s]',
-                    [$path, $path->type ?: 'null']
-                );
-
-                // Update with real path.
-                $saveHandlerFile = $path->path;
+                if (!is_file($saveHandlerFile)) {
+                    throw new SessionException(
+                        'Handler file not exists / not a file [file: %s, type: %s]',
+                        [$info, $info->type ?: 'null']
+                    );
+                }
 
                 require_once $saveHandlerFile;
             }
