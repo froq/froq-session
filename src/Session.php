@@ -67,17 +67,17 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 'Option "savePath" must not be empty'
             ));
 
-            $info = new PathInfo($savePath);
-            if ($info->isFile() || $info->isLink()) {
-                throw new SessionException('Given path is a file / link [path: %s]', $info);
-            } elseif ($info->isDirectory() && !$info->isAvailable()) {
-                throw new SessionException('Given path is not readable / writable [path: %s]', $info);
-            } elseif (!$info->isDirectory() && !@dirmake($info->getPath())) {
+            $pathInfo = new PathInfo($savePath);
+            if ($pathInfo->isFile() || $pathInfo->isLink()) {
+                throw new SessionException('Given path is a file / link [path: %s]', $pathInfo);
+            } elseif ($pathInfo->isDirectory() && !$pathInfo->isAvailable()) {
+                throw new SessionException('Given path is not readable / writable [path: %s]', $pathInfo);
+            } elseif (!$pathInfo->isDirectory() && !@dirmake($pathInfo->getPath())) {
                 throw new SessionException('Cannot make directory "savePath" option [path: %s, error: @error]',
-                    $info, extract: true);
+                    $pathInfo, extract: true);
             }
 
-            $this->savePath = $info->getPath();
+            $this->savePath = $pathInfo->getPath();
 
             session_save_path($this->savePath);
         }
