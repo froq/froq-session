@@ -7,8 +7,7 @@ namespace froq\session;
 
 use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\FactoryTrait;
-// use froq\encrypting\Uuid;
-use froq\file\FileInfo;
+use froq\file\PathInfo;
 use froq\util\Util;
 use Assert, Uuid;
 
@@ -68,18 +67,17 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 'Option "savePath" must not be empty'
             ));
 
-            $info = new FileInfo($savePath);
+            $info = new PathInfo($savePath);
             if ($info->isFile() || $info->isLink()) {
                 throw new SessionException('Given path is a file / link [path: %s]', $info);
             } elseif ($info->isDirectory() && !$info->isAvailable()) {
                 throw new SessionException('Given path is not readable / writable [path: %s]', $info);
-            } elseif (!$info->isDirectory() && !@dirmake($info->path)) {
+            } elseif (!$info->isDirectory() && !@dirmake($info->getPath())) {
                 throw new SessionException('Cannot make directory "savePath" option [path: %s, error: @error]',
                     $info, extract: true);
             }
 
-            // Update with real path.
-            $this->savePath = $info->path;
+            $this->savePath = $info->getPath();
 
             session_save_path($this->savePath);
         }
