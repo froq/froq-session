@@ -680,7 +680,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     //         );
     //     }
 
-    //     $res =@ $func(...$funcArgs);
+    //     $res = @$func(...$funcArgs);
     //     if ($res === false) {
     //         throw new SessionException(error_message() ?: 'Unkown');
     //     }
