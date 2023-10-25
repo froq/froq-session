@@ -548,7 +548,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash is UUID.
         if ($this->options['hash'] === 'uuid') {
-            $id = Uuid::generate(timed: true);
+            $id = Uuid::generate(true);
 
             if ($this->options['hashUpper']) {
                 $id = strtoupper($id);
