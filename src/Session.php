@@ -1,50 +1,47 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Copyright (c) 2015 · Kerem Güneş
  * Apache License 2.0 · http://github.com/froq/froq-session
  */
-declare(strict_types=1);
-
 namespace froq\session;
 
 use froq\common\interface\{Arrayable, Objectable};
 use froq\common\trait\FactoryTrait;
-use froq\file\system\Path;
-use froq\encrypting\Uuid;
+use froq\file\PathInfo;
 use froq\util\Util;
-use Assert, XClass;
+use Assert, Uuid;
 
 /**
  * A session management class that utilies internal session stuff.
  *
  * @package froq\session
- * @object  froq\session\Session
+ * @class   froq\session\Session
  * @author  Kerem Güneş
  * @since   1.0
  */
-final class Session implements Arrayable, Objectable, \ArrayAccess
+class Session implements Arrayable, Objectable, \ArrayAccess
 {
     use FactoryTrait;
 
-    /** @var string */
+    /** Session ID. */
     private readonly string $id;
 
-    /** @var string */
+    /** Session name. */
     private readonly string $name;
 
-    /** @var string */
+    /** Session save path. */
     private readonly string $savePath;
 
-    /** @var object */
+    /** Session save handler. */
     private readonly object $saveHandler;
 
-    /** @var ?bool */
+    /** Session started state. */
     private ?bool $started = null;
 
-    /** @var ?bool */
+    /** Session ended state. */
     private ?bool $ended = null;
 
-    /** @var froq\session\SessionOptions */
+    /** Session options with defaults. */
     private SessionOptions $options;
 
     /**
@@ -64,24 +61,23 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (isset($this->options['savePath'])) {
             $savePath = $this->options['savePath'];
             Assert::type($savePath, 'string', new SessionException(
-                'Option `savePath` must be string, %t given', $savePath
+                'Option "savePath" must be string, %t given', $savePath
             ));
-            Assert::true(trim($savePath) != '', new SessionException(
-                'Option `savePath` must not be empty'
+            Assert::true(trim($savePath) !== '', new SessionException(
+                'Option "savePath" must not be empty'
             ));
 
-            $path = new Path($savePath);
-            if ($path->isFile() || $path->isLink()) {
-                throw new SessionException('Given path is a file / link [path: %s]', $path);
-            } elseif ($path->isDirectory() && !$path->isAvailable()) {
-                throw new SessionException('Given path is not readable / writable [path: %s]', $path);
-            } elseif (!$path->isDirectory() && !$path->makeDirectory()) {
-                throw new SessionException('Cannot make directory `savePath` option [path: %s, error: %s]',
-                    [$path, '@error']);
+            $pathInfo = new PathInfo($savePath);
+            if ($pathInfo->isFile() || $pathInfo->isLink()) {
+                throw new SessionException('Given path is a file / link [path: %s]', $pathInfo);
+            } elseif ($pathInfo->isDirectory() && !$pathInfo->isAvailable()) {
+                throw new SessionException('Given path is not readable / writable [path: %s]', $pathInfo);
+            } elseif (!$pathInfo->isDirectory() && !@dirmake($pathInfo->getPath())) {
+                throw new SessionException('Cannot make directory "savePath" option [path: %s, error: @error]',
+                    $pathInfo, extract: true);
             }
 
-            // Update with real path.
-            $this->savePath = $path->path;
+            $this->savePath = $pathInfo->getPath();
 
             session_save_path($this->savePath);
         }
@@ -89,37 +85,35 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (isset($this->options['saveHandler'])) {
             $saveHandler = $this->options['saveHandler'];
             Assert::type($saveHandler, 'string|array', new SessionException(
-                'Option `saveHandler` must be string|array, %t given', $saveHandler
+                'Option "saveHandler" must be string|array, %t given', $saveHandler
             ));
 
             // When file given.
             if (is_array($saveHandler)) {
-                [$saveHandler, $saveHandlerFile] =@ $saveHandler;
+                @[$saveHandler, $saveHandlerFile] = $saveHandler;
                 if (!$saveHandler || !$saveHandlerFile) {
                     throw new SessionException(
                         'Both handler and handler file are required '.
-                        'when `saveHandler` option is array'
+                        'when "saveHandler" option is array'
                     );
                 }
 
-                $path = new Path($saveHandlerFile);
-                $path->isFile() || throw new SessionException(
-                    'Handler file not exists / not a file [file: %s, type: %s]',
-                    [$path, $path->type ?: 'null']
-                );
-
-                // Update with real path.
-                $saveHandlerFile = $path->path;
+                if (!is_file($saveHandlerFile)) {
+                    throw new SessionException(
+                        'Handler file not exists [file: %s]',
+                        $saveHandlerFile
+                    );
+                }
 
                 require_once $saveHandlerFile;
             }
 
-            $class = new XClass($saveHandler);
+            $class = new \XClass($saveHandler);
             $class->exists() || throw new SessionException(
-                'Handler class `%s` not found', $class
+                'Handler class %q not found', $class
             );
             $class->extends(AbstractHandler::class) || throw new SessionException(
-                'Handler class must extend `%s` class', AbstractHandler::class
+                'Handler class %q must extend class %q', AbstractHandler::class
             );
 
             $this->saveHandler = $class->init($this);
@@ -139,13 +133,17 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         session_register_shutdown();
     }
 
-    /** @magic */
+    /**
+     * @magic
+     */
     public function __set(string $key, mixed $value): void
     {
         $this->set($key, $value);
     }
 
-    /** @magic */
+    /**
+     * @magic
+     */
     public function __get(string $key): mixed
     {
         return $this->get($key);
@@ -270,11 +268,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         if (headers_sent($file, $line)) {
             throw new SessionException(
                 'Cannot use %s(), headers already sent at %s:%s',
-                [__method__, $file, $line]
+                [__METHOD__, $file, $line]
             );
         }
 
-        if (!$this->started || session_status() != PHP_SESSION_ACTIVE) {
+        if (!$this->started || session_status() !== PHP_SESSION_ACTIVE) {
             $id     = session_id();
             $name   = $this->options['name'];
             $update = false;
@@ -370,7 +368,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot modify `@` key in session data');
+            throw new SessionException('Cannot modify key "@"');
         }
 
         $name = $this->name();
@@ -396,7 +394,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot get `@` key, use id() instead');
+            throw new SessionException('Cannot get key "@", use id() instead');
         }
 
         $name = $this->name();
@@ -418,7 +416,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot remove `@` key in session data');
+            throw new SessionException('Cannot remove key "@"');
         }
 
         $name = $this->name();
@@ -477,18 +475,14 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Validate by UUID.
         if ($this->options['hash'] === 'uuid') {
-            if ($this->options['hashUpper']) {
-                $id = strtolower($id);
-            }
-
-            return Uuid::isValid($id);
+            return Uuid::validate($id);
         }
 
         static $idPattern; if (!$idPattern) {
             if ($this->options['hash']) {
                 $idPattern = sprintf(
                     '~^[A-F0-9]{%d}$~%s',
-                    $this->options['hashLength'],
+                    $this->options['hash'],
                     $this->options['hashUpper'] ? '' : 'i',
                 );
             } else {
@@ -554,7 +548,8 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash is UUID.
         if ($this->options['hash'] === 'uuid') {
-            $id = Uuid::generateWithTimestamp();
+            $id = Uuid::generate(true);
+
             if ($this->options['hashUpper']) {
                 $id = strtoupper($id);
             }
@@ -566,11 +561,11 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
 
         // Hash by length.
         if ($this->options['hash']) {
-            $algo = match ((int) $this->options['hashLength']) {
+            $algo = match ((int) $this->options['hash']) {
                 32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
                 default => throw new SessionException(
-                    'Invalid `hashLength` option `%s` [valids: 32,40,16]',
-                    $this->options['hashLength']
+                    'Invalid "hash" option %q [valids: 32, 40, 16, uuid]',
+                    $this->options['hash']
                 )
             };
 
@@ -633,25 +628,33 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
         return Util::makeObject($this->array(), $deep);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetExists(mixed $key): bool
     {
         return $this->has($key);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetSet(mixed $key, mixed $value): void
     {
         $this->set($key, $value);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetGet(mixed $key): mixed
     {
         return $this->get($key);
     }
 
-    /** @inheritDoc ArrayAccess */
+    /**
+     * @inheritDoc ArrayAccess
+     */
     public function offsetUnset(mixed $key): void
     {
         $this->remove($key);
@@ -677,7 +680,7 @@ final class Session implements Arrayable, Objectable, \ArrayAccess
     //         );
     //     }
 
-    //     $res =@ $func(...$funcArgs);
+    //     $res = @$func(...$funcArgs);
     //     if ($res === false) {
     //         throw new SessionException(error_message() ?: 'Unkown');
     //     }
