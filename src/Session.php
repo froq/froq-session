@@ -562,9 +562,9 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         // Hash by length.
         if ($this->options['hash']) {
             $algo = match ((int) $this->options['hash']) {
-                32 => 'md5', 40 => 'sha1', 16 => 'fnv1a64',
+                16 => 'fnv1a64', 32 => 'md5', 40 => 'sha1',
                 default => throw new SessionException(
-                    'Invalid "hash" option %q [valids: 32, 40, 16, uuid]',
+                    'Invalid "hash" option %q [valids: 16, 32, 40, uuid]',
                     $this->options['hash']
                 )
             };
@@ -582,32 +582,32 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     /**
      * Generate a CSRF token for a form & write to session.
      *
-     * @param  string $form
+     * @param  string $formId
      * @return string
      * @since  5.0
      */
-    public function generateCsrfToken(string $form): string
+    public function generateCsrfToken(string $formId): string
     {
-        $form      = '@form@' . $form;
-        $formToken = Uuid::generateHash();
+        $formKey   = '@form@' . $formId;
+        $formToken = Uuid::generate(guid: true, hash: true);
 
-        $this->set($form, $formToken);
+        $this->set($formKey, $formToken);
 
         return $formToken;
     }
 
     /**
-     * Validate a CSRF token for a form which was previously written to session.
+     * Validate a CSRF token for a form.
      *
-     * @param  string $form
-     * @param  string $token
+     * @param  string $formId
+     * @param  string $token Posted by form.
      * @return bool
      * @since  5.0
      */
-    public function validateCsrfToken(string $form, string $token): bool
+    public function validateCsrfToken(string $formId, string $token): bool
     {
-        $form      = '@form@' . $form;
-        $formToken = $this->get($form);
+        $formKey   = '@form@' . $formId;
+        $formToken = $this->get($formKey);
 
         return $formToken && hash_equals($formToken, $token);
     }
