@@ -9,11 +9,11 @@ namespace froq\session;
  * An abstract session handler.
  *
  * @package froq\session
- * @class   froq\session\AbstractHandler
+ * @class   froq\session\SessionHandler
  * @author  Kerem Güneş
  * @since   1.0
  */
-abstract class AbstractHandler implements \SessionHandlerInterface
+abstract class SessionHandler extends \SessionHandler
 {
     /** Session instance. */
     protected Session $session;

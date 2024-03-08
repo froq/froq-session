@@ -23,6 +23,9 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 {
     use FactoryTrait;
 
+    /** CSRF token prefix (appended as token key). */
+    public const CSRF_TOKEN_PREFIX = '@csrf-token-';
+
     /** Session ID. */
     private readonly string $id;
 
@@ -90,10 +93,10 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
             // When file given.
             if (is_array($saveHandler)) {
-                @[$saveHandler, $saveHandlerFile] = $saveHandler;
+                @ [$saveHandler, $saveHandlerFile] = $saveHandler;
                 if (!$saveHandler || !$saveHandlerFile) {
                     throw new SessionException(
-                        'Both handler and handler file are required '.
+                        'Both handler class and handler file are required '.
                         'when "saveHandler" option is array'
                     );
                 }
@@ -110,10 +113,10 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
             $class = new \XClass($saveHandler);
             $class->exists() || throw new SessionException(
-                'Handler class %q not found', $class
+                'Handler class %Q not found', $class
             );
-            $class->extends(AbstractHandler::class) || throw new SessionException(
-                'Handler class %q must extend class %q', AbstractHandler::class
+            $class->extends(SessionHandler::class) || throw new SessionException(
+                'Handler class %Q must extend class %Q', [$saveHandler, SessionHandler::class]
             );
 
             $this->saveHandler = $class->init($this);
@@ -154,7 +157,6 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      *
      * @param  string $key
      * @return mixed
-     * @since  6.0
      */
     public function option(string $key): mixed
     {
@@ -210,7 +212,6 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * Get cookie.
      *
      * @return array
-     * @since  4.1
      */
     public function cookie(): array
     {
@@ -225,7 +226,6 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      *
      * @param  bool $swap
      * @return array
-     * @since  4.1
      */
     public function cookieParams(bool $swap = true): array
     {
@@ -263,7 +263,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * @return bool
      * @throws froq\session\SessionException
      */
-    public function start(): bool|null
+    public function start(): bool
     {
         if (headers_sent($file, $line)) {
             throw new SessionException(
@@ -280,9 +280,9 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             if ($id && $this->isValidId($id)) {
                 // Pass, never happens, but obsession..
             } else {
-                // Hard and hard.
                 $id = $_COOKIE[$name] ?? '';
-                if (!$id || !$this->isValidId($id) || !$this->isValidSource($id)) {
+
+                if (!$this->isValidId($id) || !$this->isValidSource($id)) {
                     $id     = $this->generateId();
                     $update = true;
                 }
@@ -316,8 +316,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 throw new SessionException('Session name match failed');
             }
 
-            // Init sub-array.
-            isset($_SESSION[$this->name]) || $_SESSION[$this->name] = ['@' => $this->id];
+            // Init sub-array as reserved session area.
+            $_SESSION[$this->name] ??= ['@' => $this->id];
         }
 
         return $this->started;
@@ -327,11 +327,11 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * End.
      *
      * @param  bool $deleteCookie
-     * @return bool|null
+     * @return bool
      */
-    public function end(bool $deleteCookie = true): bool|null
+    public function end(bool $deleteCookie = true): bool
     {
-        if (!$this->ended && $this->started) {
+        if (!$this->ended && !!$this->started) {
             $this->ended = session_destroy();
 
             // Delete session cookie.
@@ -368,11 +368,12 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     {
         // Prevent ID.
         if ($key === '@') {
-            throw new SessionException('Cannot modify key "@"');
+            throw new SessionException('Cannot set key "@"');
         }
 
         $name = $this->name();
-        if (!isset($_SESSION[$name])) {
+
+        if (empty($_SESSION[$name])) {
             throw new SessionException('Session not started yet, call start()');
         }
 
@@ -398,7 +399,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-        if (!isset($_SESSION[$name])) {
+
+        if (empty($_SESSION[$name])) {
             throw new SessionException('Session not started yet, call start()');
         }
 
@@ -420,7 +422,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         $name = $this->name();
-        if (!isset($_SESSION[$name])) {
+
+        if (empty($_SESSION[$name])) {
             throw new SessionException('Session not started yet, call start()');
         }
 
@@ -446,12 +449,13 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * Flush.
      *
      * @return void
-     * @since 4.2
      */
     public function flush(): void
     {
-        foreach (array_keys($this->array()) as $key) {
-            ($key !== '@') && $this->remove($key);
+        $name = $this->name();
+
+        if (isset($_SESSION[$name])) {
+            $_SESSION[$name] = ['@' => $this->id()];
         }
     }
 
@@ -463,8 +467,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function isValidId(string|null $id): bool
     {
-        $id = trim((string) $id);
-        if (!$id) {
+        // Prevents NULL-bytes too.
+        if (!$this->validateId((string) $id)) {
             return false;
         }
 
@@ -473,12 +477,34 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             return $saveHandler->isValidId($id);
         }
 
+        // Some other generate methods might be used.
+        if ($saveHandler) {
+            $generateId = match (true) {
+                default => 'create_sid', // From PHP's SessionHandler.
+                method_exists($saveHandler, 'generateId') => 'generateId',
+            };
+
+            if ($generateId) {
+                $gid = preg_remove('~[^a-z0-9]~i', $saveHandler->$generateId());
+                $sid = preg_remove('~[^a-z0-9]~i', $id);
+
+                // Try possible ways.
+                return strlen($gid) === strlen($sid) && (
+                    (ctype_alnum($gid)  && ctype_alnum($sid))  ||
+                    (ctype_xdigit($gid) && ctype_xdigit($sid)) ||
+                    (ctype_digit($gid)  && ctype_digit($sid))
+                );
+            }
+        }
+
         // Validate by UUID.
         if ($this->options['hash'] === 'uuid') {
             return Uuid::validate($id);
         }
 
-        static $idPattern; if (!$idPattern) {
+        static $idPattern;
+
+        if (!$idPattern) {
             if ($this->options['hash']) {
                 $idPattern = sprintf(
                     '~^[A-F0-9]{%d}$~%s',
@@ -519,8 +545,8 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function isValidSource(string|null $id): bool
     {
-        $id = trim((string) $id);
-        if (!$id) {
+        // Prevents NULL-bytes too.
+        if (!$this->validateId((string) $id)) {
             return false;
         }
 
@@ -529,8 +555,10 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             return $saveHandler->isValidSource($id);
         }
 
-        // For 'sess_' @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
-        return is_file(($this->savePath() ?? session_save_path()) .'/sess_'. $id);
+        // @see https://github.com/php/php-src/blob/master/ext/session/mod_files.c#L85
+        $sourceFile = ($this->savePath() ?? session_save_path()) . '/sess_' . $id;
+
+        return file_exists($sourceFile);
     }
 
     /**
@@ -564,7 +592,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             $algo = match ((int) $this->options['hash']) {
                 16 => 'fnv1a64', 32 => 'md5', 40 => 'sha1',
                 default => throw new SessionException(
-                    'Invalid "hash" option %q [valids: 16, 32, 40, uuid]',
+                    'Invalid "hash" option %Q [valids: 16, 32, 40, uuid]',
                     $this->options['hash']
                 )
             };
@@ -580,36 +608,60 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     }
 
     /**
-     * Generate a CSRF token for a form & write to session.
+     * Validate id (basically alpnum & dashes for UUIDs).
      *
-     * @param  string $formId
-     * @return string
-     * @since  5.0
+     * @param  string $id
+     * @return bool
      */
-    public function generateCsrfToken(string $formId): string
+    public function validateId(string $id): bool
     {
-        $formKey   = '@form@' . $formId;
-        $formToken = Uuid::generateGuid(hash: true);
-
-        $this->set($formKey, $formToken);
-
-        return $formToken;
+        return $id && preg_test('~^[a-z0-9][a-z0-9-]+$~i', $id);
     }
 
     /**
-     * Validate a CSRF token for a form.
+     * Get a stored CSRF token for given key if exists.
      *
-     * @param  string $formId
-     * @param  string $token Posted by form.
-     * @return bool
-     * @since  5.0
+     * @param  string $key
+     * @return string|null
      */
-    public function validateCsrfToken(string $formId, string $token): bool
+    public function getCsrfToken(string $key): string|null
     {
-        $formKey   = '@form@' . $formId;
-        $formToken = $this->get($formKey);
+        $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
+        $csrfToken = $this->get($csrfKey);
 
-        return $formToken && hash_equals($formToken, $token);
+        return $csrfToken;
+    }
+
+    /**
+     * Generate a CSRF token for given key, write to session.
+     *
+     * @param  string $key
+     * @return string
+     */
+    public function generateCsrfToken(string $key): string
+    {
+        $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
+        $csrfToken = Uuid::generateGuid(hash: true);
+
+        $this->set($csrfKey, $csrfToken);
+
+        return $csrfToken;
+    }
+
+    /**
+     * Validate a CSRF token for given key.
+     *
+     * @param  string $key
+     * @param  string $token Retrieved externally.
+     * @param  bool   $drop
+     * @return bool
+     */
+    public function validateCsrfToken(string $key, string $token, bool $drop = false): bool
+    {
+        $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
+        $csrfToken = $this->get($csrfKey, null, $drop);
+
+        return $csrfToken && hash_equals($csrfToken, $token);
     }
 
     /**
@@ -682,7 +734,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
 
     //     $res = @$func(...$funcArgs);
     //     if ($res === false) {
-    //         throw new SessionException(error_message() ?: 'Unkown');
+    //         throw new SessionException(error_message() ?: 'Unknown');
     //     }
     //     return $res;
     // }
