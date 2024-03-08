@@ -273,11 +273,11 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         }
 
         if (!$this->started || session_status() !== PHP_SESSION_ACTIVE) {
-            $id     = session_id();
+            $id     = (string) session_id();
             $name   = $this->options['name'];
             $update = false;
 
-            if ($id && $this->isValidId($id)) {
+            if ($this->isValidId($id)) {
                 // Pass, never happens, but obsession..
             } else {
                 $id = $_COOKIE[$name] ?? '';
@@ -622,14 +622,27 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * Get a stored CSRF token for given key if exists.
      *
      * @param  string $key
+     * @param  bool   $drop
      * @return string|null
      */
-    public function getCsrfToken(string $key): string|null
+    public function getCsrfToken(string $key, bool $drop = false): string|null
     {
         $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
-        $csrfToken = $this->get($csrfKey);
+        $csrfToken = $this->get($csrfKey, null, $drop);
 
         return $csrfToken;
+    }
+
+    /**
+     * Remove a stored CSRF token for given key if exists.
+     *
+     * @param  string $key
+     * @param  bool   $drop
+     * @return string|null
+     */
+    public function removeCsrfToken(string $key): bool
+    {
+        return !!$this->getCsrfToken($key, true);
     }
 
     /**
@@ -641,7 +654,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     public function generateCsrfToken(string $key): string
     {
         $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
-        $csrfToken = Uuid::generateGuid(hash: true);
+        $csrfToken = Uuid::generateHash(24, algo: 'sha1');
 
         $this->set($csrfKey, $csrfToken);
 
