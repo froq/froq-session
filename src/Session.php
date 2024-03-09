@@ -280,7 +280,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             if ($this->isValidId($id)) {
                 // Pass, never happens, but obsession..
             } else {
-                $id = $_COOKIE[$name] ?? '';
+                $id = (string) ($_COOKIE[$name] ?? '');
 
                 if (!$this->isValidId($id) || !$this->isValidSource($id)) {
                     $id     = $this->generateId();
@@ -462,13 +462,13 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     /**
      * Check ID validity.
      *
-     * @param  string|null $id
+     * @param  string $id
      * @return bool
      */
-    public function isValidId(string|null $id): bool
+    public function isValidId(string $id): bool
     {
         // Prevents NULL-bytes too.
-        if (!$this->validateId((string) $id)) {
+        if (!$this->validateId($id)) {
             return false;
         }
 
@@ -540,13 +540,13 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     /**
      * Check source validity.
      *
-     * @param  string|null $id
+     * @param  string $id
      * @return bool
      */
-    public function isValidSource(string|null $id): bool
+    public function isValidSource(string $id): bool
     {
         // Prevents NULL-bytes too.
-        if (!$this->validateId((string) $id)) {
+        if (!$this->validateId($id)) {
             return false;
         }
 
@@ -654,7 +654,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     public function generateCsrfToken(string $key): string
     {
         $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
-        $csrfToken = Uuid::generateHash(24, algo: 'sha1');
+        $csrfToken = Uuid::generateHash(24, 'sha1');
 
         $this->set($csrfKey, $csrfToken);
 
