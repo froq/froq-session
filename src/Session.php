@@ -300,8 +300,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 throw new SessionException('@error');
             }
 
-            $this->started = session_start();
-            if (!$this->started) {
+            if (!$this->started = session_start()) {
                 session_write_close();
                 throw new SessionException('@error');
             }
