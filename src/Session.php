@@ -479,12 +479,13 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         // Some other generate methods might be used.
         if ($saveHandler) {
             $generateId = match (true) {
-                default => 'create_sid', // From PHP's SessionHandler.
-                method_exists($saveHandler, 'generateId') => 'generateId',
+                method_exists($saveHandler, 'generateId') => [$saveHandler, 'generateId'],
+                session_status() === PHP_SESSION_ACTIVE   => [$saveHandler, 'create_sid'],
+                default                                   => [$this, 'generateId'],
             };
 
             if ($generateId) {
-                $gid = preg_remove('~[^a-z0-9]~i', $saveHandler->$generateId());
+                $gid = preg_remove('~[^a-z0-9]~i', $generateId());
                 $sid = preg_remove('~[^a-z0-9]~i', $id);
 
                 // Try possible ways.
