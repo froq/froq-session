@@ -24,7 +24,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     use FactoryTrait;
 
     /** CSRF token prefix (appended as token key). */
-    public const CSRF_TOKEN_PREFIX = '@csrf-token-';
+    private const CSRF_TOKEN_PREFIX = '@csrf-token-';
 
     /** Session ID. */
     private readonly string $id;
@@ -365,15 +365,18 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function set(string|array $key, mixed $value = null): self
     {
-        // Prevent ID.
+        // Forbid ID.
         if ($key === '@') {
             throw new SessionException('Cannot set key "@"');
         }
 
         $name = $this->name();
 
-        if (empty($_SESSION[$name])) {
+        if (!isset($_SESSION[$name])) {
             throw new SessionException('Session not started yet, call start()');
+        }
+        if (!is_array($_SESSION[$name])) {
+            throw new SessionException('Session sub-array is corrupted');
         }
 
         array_set($_SESSION[$name], $key, $value);
@@ -392,15 +395,18 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function get(string|array $key, mixed $default = null, bool $drop = false): mixed
     {
-        // Prevent ID.
+        // Forbid ID.
         if ($key === '@') {
             throw new SessionException('Cannot get key "@", use id() instead');
         }
 
         $name = $this->name();
 
-        if (empty($_SESSION[$name])) {
+        if (!isset($_SESSION[$name])) {
             throw new SessionException('Session not started yet, call start()');
+        }
+        if (!is_array($_SESSION[$name])) {
+            throw new SessionException('Session sub-array is corrupted');
         }
 
         return array_get($_SESSION[$name], $key, $default, $drop);
@@ -415,15 +421,18 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function remove(string|array $key): self
     {
-        // Prevent ID.
+        // Forbid ID.
         if ($key === '@') {
             throw new SessionException('Cannot remove key "@"');
         }
 
         $name = $this->name();
 
-        if (empty($_SESSION[$name])) {
+        if (!isset($_SESSION[$name])) {
             throw new SessionException('Session not started yet, call start()');
+        }
+        if (!is_array($_SESSION[$name])) {
+            throw new SessionException('Session sub-array is corrupted');
         }
 
         array_remove($_SESSION[$name], $key);
@@ -642,7 +651,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      */
     public function removeCsrfToken(string $key): bool
     {
-        return !!$this->getCsrfToken($key, true);
+        return $this->getCsrfToken($key, true) !== null;
     }
 
     /**
