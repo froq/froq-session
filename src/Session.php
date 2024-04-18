@@ -657,13 +657,14 @@ class Session implements Arrayable, Objectable, \ArrayAccess
     /**
      * Generate a CSRF token for given key, write to session.
      *
-     * @param  string $key
+     * @param  string     $key
+     * @param  string|int $algo Algo or base.
      * @return string
      */
-    public function generateCsrfToken(string $key): string
+    public function generateCsrfToken(string $key, string|int $algo = 'md5'): string
     {
         $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
-        $csrfToken = Uuid::generateHash(24, 'sha1');
+        $csrfToken = Uuid::generateHash(24, $algo);
 
         $this->set($csrfKey, $csrfToken);
 
