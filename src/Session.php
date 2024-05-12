@@ -360,10 +360,10 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      *
      * @param  string|array<string, mixed> $key
      * @param  mixed|null                  $value
-     * @return self
+     * @return self|false
      * @throws froq\session\SessionException
      */
-    public function set(string|array $key, mixed $value = null): self
+    public function set(string|array $key, mixed $value = null): self|false
     {
         // Forbid ID.
         if ($key === '@') {
@@ -373,11 +373,16 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         $name = $this->name();
 
         if (!isset($_SESSION[$name])) {
-            throw new SessionException('Session not started yet, call start()');
+            error_log('Session not started yet, call start()', 4);
+            return false;
         }
-        if (!is_array($_SESSION[$name])) {
-            throw new SessionException('Session sub-array is corrupted');
-        }
+
+        // if (!isset($_SESSION[$name])) {
+        //     throw new SessionException('Session not started yet, call start()');
+        // }
+        // if (!is_array($_SESSION[$name])) {
+        //     throw new SessionException('Session sub-array is corrupted');
+        // }
 
         array_set($_SESSION[$name], $key, $value);
 
@@ -390,7 +395,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * @param  string|array<string> $key
      * @param  mixed|null           $default
      * @param  bool                 $drop
-     * @return mixed
+     * @return mixed|false
      * @throws froq\session\SessionException
      */
     public function get(string|array $key, mixed $default = null, bool $drop = false): mixed
@@ -403,11 +408,16 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         $name = $this->name();
 
         if (!isset($_SESSION[$name])) {
-            throw new SessionException('Session not started yet, call start()');
+            error_log('Session not started yet, call start()', 4);
+            return false;
         }
-        if (!is_array($_SESSION[$name])) {
-            throw new SessionException('Session sub-array is corrupted');
-        }
+
+        // if (!isset($_SESSION[$name])) {
+        //     throw new SessionException('Session not started yet, call start()');
+        // }
+        // if (!is_array($_SESSION[$name])) {
+        //     throw new SessionException('Session sub-array is corrupted');
+        // }
 
         return array_get($_SESSION[$name], $key, $default, $drop);
     }
@@ -416,10 +426,10 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * Remove a var from session data.
      *
      * @param  string|array<string> $key
-     * @return self
+     * @return self|false
      * @throws froq\session\SessionException
      */
-    public function remove(string|array $key): self
+    public function remove(string|array $key): self|false
     {
         // Forbid ID.
         if ($key === '@') {
@@ -429,11 +439,16 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         $name = $this->name();
 
         if (!isset($_SESSION[$name])) {
-            throw new SessionException('Session not started yet, call start()');
+            error_log('Session not started yet, call start()', 4);
+            return false;
         }
-        if (!is_array($_SESSION[$name])) {
-            throw new SessionException('Session sub-array is corrupted');
-        }
+
+        // if (!isset($_SESSION[$name])) {
+        //     throw new SessionException('Session not started yet, call start()');
+        // }
+        // if (!is_array($_SESSION[$name])) {
+        //     throw new SessionException('Session sub-array is corrupted');
+        // }
 
         array_remove($_SESSION[$name], $key);
 
