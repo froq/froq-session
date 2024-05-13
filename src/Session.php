@@ -376,13 +376,9 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             error_log('Session not started yet, call start()', 4);
             return false;
         }
-
-        // if (!isset($_SESSION[$name])) {
-        //     throw new SessionException('Session not started yet, call start()');
-        // }
-        // if (!is_array($_SESSION[$name])) {
-        //     throw new SessionException('Session sub-array is corrupted');
-        // }
+        if (!is_array($_SESSION[$name])) {
+            throw new SessionException('Session sub-array corrupted');
+        }
 
         array_set($_SESSION[$name], $key, $value);
 
@@ -411,13 +407,9 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             error_log('Session not started yet, call start()', 4);
             return false;
         }
-
-        // if (!isset($_SESSION[$name])) {
-        //     throw new SessionException('Session not started yet, call start()');
-        // }
-        // if (!is_array($_SESSION[$name])) {
-        //     throw new SessionException('Session sub-array is corrupted');
-        // }
+        if (!is_array($_SESSION[$name])) {
+            throw new SessionException('Session sub-array corrupted');
+        }
 
         return array_get($_SESSION[$name], $key, $default, $drop);
     }
@@ -442,13 +434,9 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             error_log('Session not started yet, call start()', 4);
             return false;
         }
-
-        // if (!isset($_SESSION[$name])) {
-        //     throw new SessionException('Session not started yet, call start()');
-        // }
-        // if (!is_array($_SESSION[$name])) {
-        //     throw new SessionException('Session sub-array is corrupted');
-        // }
+        if (!is_array($_SESSION[$name])) {
+            throw new SessionException('Session sub-array corrupted');
+        }
 
         array_remove($_SESSION[$name], $key);
 
