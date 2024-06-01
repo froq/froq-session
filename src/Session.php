@@ -488,7 +488,6 @@ class Session implements Arrayable, Objectable, \ArrayAccess
             return $saveHandler->isValidId($id);
         }
 
-        // Some other generate methods might be used.
         if ($saveHandler) {
             $generateId = match (true) {
                 method_exists($saveHandler, 'generateId') => [$saveHandler, 'generateId'],
@@ -496,17 +495,14 @@ class Session implements Arrayable, Objectable, \ArrayAccess
                 default                                   => [$this, 'generateId'],
             };
 
-            if ($generateId) {
-                $gid = preg_remove('~[^a-z0-9]~i', $generateId());
-                $sid = preg_remove('~[^a-z0-9]~i', $id);
+            $gid = preg_remove('~[^a-z0-9]~i', $generateId());
+            $sid = preg_remove('~[^a-z0-9]~i', $id);
 
-                // Try possible ways.
-                return strlen($gid) === strlen($sid) && (
-                    (ctype_alnum($gid)  && ctype_alnum($sid))  ||
-                    (ctype_xdigit($gid) && ctype_xdigit($sid)) ||
-                    (ctype_digit($gid)  && ctype_digit($sid))
-                );
-            }
+            // Try possible ways.
+            return strlen($gid) === strlen($sid) && (
+                (ctype_alnum($gid) && ctype_alnum($sid)) ||
+                (ctype_xdigit($gid) && ctype_xdigit($sid))
+            );
         }
 
         // Validate by UUID.
@@ -642,7 +638,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
         $csrfKey   = self::CSRF_TOKEN_PREFIX . $key;
         $csrfToken = $this->get($csrfKey, null, $drop);
 
-        return $csrfToken;
+        return $csrfToken ?: null;
     }
 
     /**
@@ -650,7 +646,7 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      *
      * @param  string $key
      * @param  bool   $drop
-     * @return string|null
+     * @return bool
      */
     public function removeCsrfToken(string $key): bool
     {
