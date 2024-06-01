@@ -645,7 +645,6 @@ class Session implements Arrayable, Objectable, \ArrayAccess
      * Remove a stored CSRF token for given key if exists.
      *
      * @param  string $key
-     * @param  bool   $drop
      * @return bool
      */
     public function removeCsrfToken(string $key): bool
